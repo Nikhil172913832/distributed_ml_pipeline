@@ -1,0 +1,16 @@
+
+pandas
+numpy
+scikit-learn
+joblib
+sdv
+kafka-python
+psycopg2-binary
+loguru
+prometheus-client
+python-dotenv
+pytest
+pytest-cov
+black
+flake8
+mypy

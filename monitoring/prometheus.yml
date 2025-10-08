@@ -1,0 +1,45 @@
+# Prometheus Configuration for SECOM ML Pipeline
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'secom-ml-pipeline'
+
+# Scrape configurations
+scrape_configs:
+  # Producer metrics
+  - job_name: 'secom-producer'
+    static_configs:
+      - targets: ['host.docker.internal:8000']
+        labels:
+          service: 'producer'
+          environment: 'development'
+
+  # Consumer metrics
+  - job_name: 'secom-consumer'
+    static_configs:
+      - targets: ['host.docker.internal:8001']
+        labels:
+          service: 'consumer'
+          environment: 'development'
+
+  # PostgreSQL metrics (requires postgres_exporter)
+  - job_name: 'postgresql'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+        labels:
+          service: 'database'
+          environment: 'development'
+
+  # Kafka metrics
+  - job_name: 'kafka'
+    static_configs:
+      - targets: ['kafka:9101']
+        labels:
+          service: 'kafka'
+          environment: 'development'
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
