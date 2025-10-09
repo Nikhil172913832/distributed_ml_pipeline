@@ -59,7 +59,7 @@ echo -e "${GREEN}✓ Python environment setup complete${NC}"
 # Start Docker containers
 echo ""
 echo "Starting Docker containers..."
-docker-compose up -d
+docker compose up -d
 
 # Wait for services to be ready
 echo "Waiting for services to start..."
@@ -131,8 +131,8 @@ echo "  3. Start the consumer (in another terminal):"
 echo "     python pipeline/consumer.py"
 echo ""
 echo "To stop services:"
-echo "  docker-compose down"
+echo "  docker compose down"
 echo ""
 echo "To stop and remove volumes:"
-echo "  docker-compose down -v"
+echo "  docker compose down -v"
 echo "=========================================="

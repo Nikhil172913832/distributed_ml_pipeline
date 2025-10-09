@@ -133,6 +133,145 @@ services:
     depends_on:
       - prometheus
 
+  # Redis for caching and state management
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - ml_pipeline
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Producer service
+  producer:
+    build:
+      context: .
+      dockerfile: Dockerfile.producer
+    container_name: secom-producer
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_RAW_TOPIC: secom-raw-data
+      BATCH_SIZE: 100
+      GENERATION_INTERVAL_SECONDS: 5
+      SDV_MODEL_PATH: /app/models/sdv_secom_raw.joblib
+      PROMETHEUS_PORT: 8000
+      LOG_LEVEL: INFO
+    volumes:
+      - ./models:/app/models
+      - ./logs:/app/logs
+    networks:
+      - ml_pipeline
+    depends_on:
+      kafka:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Consumer/Preprocessor service
+  consumer:
+    build:
+      context: .
+      dockerfile: Dockerfile.consumer
+    container_name: secom-consumer
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:29092
+      KAFKA_RAW_TOPIC: secom-raw-data
+      KAFKA_CONSUMER_GROUP: secom-preprocessor-group
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-secom_pipeline}
+      POSTGRES_USER: ${POSTGRES_USER:-ml_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ml_password}
+      PREPROCESSING_PIPELINE_PATH: /app/models/preprocessing_pipeline.joblib
+      PROMETHEUS_PORT: 8001
+      LOG_LEVEL: INFO
+    volumes:
+      - ./models:/app/models
+      - ./logs:/app/logs
+    networks:
+      - ml_pipeline
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Inference service
+  inference:
+    build:
+      context: .
+      dockerfile: Dockerfile.inference
+    container_name: secom-inference
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-secom_pipeline}
+      POSTGRES_USER: ${POSTGRES_USER:-ml_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ml_password}
+      INFERENCE_BATCH_SIZE: 100
+      INFERENCE_POLL_INTERVAL: 5
+      CONFIDENCE_THRESHOLD: 0.7
+      ACCURACY_THRESHOLD: 0.85
+      F1_THRESHOLD: 0.80
+      DEGRADATION_TOLERANCE: 0.05
+      DRIFT_DETECTION_ENABLED: "true"
+      DRIFT_CHECK_INTERVAL_HOURS: 6
+      KS_TEST_THRESHOLD: 0.05
+      DRIFT_SCORE_THRESHOLD: 0.3
+      BASELINE_DAYS: 7
+      INFERENCE_PROMETHEUS_PORT: 8002
+      LOG_LEVEL: INFO
+    volumes:
+      - ./models:/app/models
+      - ./logs:/app/logs
+    networks:
+      - ml_pipeline
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Retrainer service
+  retrainer:
+    build:
+      context: .
+      dockerfile: Dockerfile.retrainer
+    container_name: secom-retrainer
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-secom_pipeline}
+      POSTGRES_USER: ${POSTGRES_USER:-ml_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ml_password}
+      RETRAINER_CHECK_INTERVAL: 300
+      RETRAINER_AUTO_DEPLOY: "true"
+      MAX_CONCURRENT_TRAINING: 1
+      RETRAINING_COOLDOWN_HOURS: 6
+      RETRAINER_PROMETHEUS_PORT: 8003
+      LOG_LEVEL: INFO
+      # Training config
+      TRAIN_TEST_SPLIT: 0.2
+      RANDOM_STATE: 42
+      CV_FOLDS: 5
+      N_JOBS: -1
+      MODELS_DIR: /app/models
+    volumes:
+      - ./models:/app/models
+      - ./logs:/app/logs
+    networks:
+      - ml_pipeline
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
 networks:
   ml_pipeline:
     driver: bridge
@@ -147,4 +286,6 @@ volumes:
   prometheus_data:
     driver: local
   grafana_data:
+    driver: local
+  redis_data:
     driver: local

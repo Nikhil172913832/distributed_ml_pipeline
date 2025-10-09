@@ -9,6 +9,7 @@ psycopg2-binary
 loguru
 prometheus-client
 python-dotenv
+scipy
 pytest
 pytest-cov
 black

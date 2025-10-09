@@ -1,261 +1,459 @@
-# SECOM ML Pipeline - System Architecture
+# SECOM ML Pipeline - Complete System Architecture
 
-## High-Level Architecture
+## 🏗️ High-Level Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                    SECOM ML PIPELINE ECOSYSTEM                       │
-└─────────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────────┐
+│           SECOM DISTRIBUTED ML PIPELINE WITH CONTINUOUS LEARNING          │
+└───────────────────────────────────────────────────────────────────────────┘
 
 ┌────────────────────┐
-│  Data Generation   │
-│                    │
-│  1. SDV Model      │──┐
-│     (TVAE)         │  │
-│  2. Feature        │  │
-│     Engineering    │  │
-│  3. Batch          │  │
-│     Creation       │  │
-└────────────────────┘  │
-                        │
-                        v
-┌────────────────────────────────────────────┐
-│         KAFKA MESSAGE BROKER               │
-│                                            │
-│  Topics:                                   │
-│  ├─ secom-raw-data         (3 partitions) │
-│  ├─ secom-preprocessed-data (3 partitions)│
-│  └─ secom-dead-letter-queue (1 partition) │
-└────────────────────────────────────────────┘
-                        │
-                        v
-┌────────────────────┐
-│  Preprocessing     │
-│                    │
-│  1. Consume Batch  │
-│  2. Impute Missing │
-│  3. Standardize    │
-│  4. Quality Check  │
-│  5. Store Results  │
-└────────────────────┘
-                        │
-                        v
-┌─────────────────────────────────────────────┐
-│         POSTGRESQL DATABASE                 │
-│                                             │
-│  Tables:                                    │
-│  ├─ raw_data            (JSONB features)   │
-│  ├─ preprocessed_data   (JSONB features)   │
-│  ├─ batch_metadata      (statistics)       │
-│  ├─ dead_letter_queue   (error tracking)   │
-│  ├─ data_quality_metrics (monitoring)      │
-│  └─ pipeline_audit_log  (audit trail)      │
-└─────────────────────────────────────────────┘
-                        │
-                        v
-┌────────────────────────────────────────────┐
-│         MONITORING & OBSERVABILITY         │
-│                                            │
-│  ┌──────────────┐    ┌──────────────┐    │
-│  │  Prometheus  │───>│   Grafana    │    │
-│  │   Metrics    │    │  Dashboards  │    │
-│  └──────────────┘    └──────────────┘    │
-│                                            │
-│  ┌──────────────┐    ┌──────────────┐    │
-│  │   Loguru     │    │   Kafka UI   │    │
-│  │   Logging    │    │   Monitor    │    │
-│  └──────────────┘    └──────────────┘    │
-└────────────────────────────────────────────┘
+│  Data Generation   │     ┌────────────────────────────────────────────┐
+│  (Producer)        │────▶│       KAFKA MESSAGE BROKER (KRaft)         │
+│                    │     │                                            │
+│  • SDV TVAE Model  │     │  Topics:                                   │
+│  • Synthetic Data  │     │  ├─ secom-raw-data      (streaming)       │
+│  • Batch Creation  │     │  └─ secom-dlq           (errors)          │
+└────────────────────┘     └────────────────────────────────────────────┘
+                                              │
+                                              v
+┌──────────────────────────────────────────────────────────────────────────┐
+│                       DATA PROCESSING PIPELINE                           │
+├────────────────────┬─────────────────────────────────────────────────────┤
+│  Preprocessing     │              POSTGRESQL DATABASE                    │
+│  (Consumer)        │                                                     │
+│                    │  Core Tables:                                       │
+│  • Consume Batch   │  ├─ raw_data           (590 features + target)     │
+│  • Impute Missing  │  ├─ preprocessed_data  (cleaned features)          │
+│  • Standardize     │  ├─ batch_metadata     (processing stats)          │
+│  • Quality Check   │  ├─ dead_letter_queue  (error tracking)            │
+│  • Store to DB     │  └─ pipeline_audit_log (event tracking)            │
+└────────────────────┴─────────────────────────────────────────────────────┘
+                                              │
+                                              v
+┌──────────────────────────────────────────────────────────────────────────┐
+│                       ML OPERATIONS PIPELINE                             │
+├────────────────────┬─────────────────────────────────────────────────────┤
+│  Inference Engine  │            ML OPERATIONS TABLES                     │
+│                    │                                                     │
+│  • Load Model      │  ├─ model_registry      (all trained models)       │
+│  • Make Prediction │  ├─ predictions         (all predictions)          │
+│  • Track Confidence│  ├─ model_performance_metrics (hourly metrics)     │
+│  • Monitor Drift   │  ├─ data_drift_metrics  (drift detection)          │
+│  • Trigger Retrain │  ├─ retraining_triggers (retrain events)           │
+└────────────────────┤  └─ feature_importance  (model insights)           │
+                     │                                                     │
+┌────────────────────┴─────────────────────────────────────────────────────┤
+│  Continuous Learning (Retrainer)                                         │
+│                                                                          │
+│  • Monitor Triggers                                                      │
+│  • Execute Training ──▶ Model Trainer                                   │
+│  • Compare Models        │                                               │
+│  • Auto-Deploy           ├─ Logistic Regression                         │
+│                          ├─ Random Forest                               │
+│                          └─ Gradient Boosting                           │
+└──────────────────────────────────────────────────────────────────────────┘
+                                              │
+                                              v
+┌──────────────────────────────────────────────────────────────────────────┐
+│                       MONITORING & OBSERVABILITY                         │
+├────────────────────┬─────────────────────────────────────────────────────┤
+│   Prometheus       │              Grafana Dashboards                     │
+│                    │                                                     │
+│  Metrics:          │  Visualizations:                                    │
+│  • Throughput      │  • Model Performance (Accuracy, F1)                │
+│  • Latency         │  • Prediction Distribution                         │
+│  • Accuracy        │  • Drift Detection Alerts                          │
+│  • Drift Score     │  • Retraining Job Status                           │
+│  • Job Status      │  • Pipeline Health                                 │
+└────────────────────┴─────────────────────────────────────────────────────┘
 ```
 
-## Data Flow Diagram
+## 📦 Component Details
 
-```
-1. GENERATION PHASE
-   ┌─────────┐
-   │   SDV   │
-   │  Model  │ → Generate 590 features + target
-   └─────────┘
-       ↓
-   ┌─────────┐
-   │  Batch  │ → Group samples (default: 100)
-   │  Create │
-   └─────────┘
-       ↓
-   ┌─────────┐
-   │  Kafka  │ → Publish to raw-data topic
-   │Producer │
-   └─────────┘
+### 1. Data Generation Layer
+**Service**: `producer`  
+**Port**: 8000 (Prometheus metrics)  
+**Language**: Python
 
-2. INGESTION PHASE
-   ┌─────────┐
-   │  Kafka  │ → Consume from raw-data topic
-   │Consumer │
-   └─────────┘
-       ↓
-   ┌─────────┐
-   │  Store  │ → Save to raw_data table
-   │   Raw   │
-   └─────────┘
+**Responsibilities**:
+- Generate synthetic SECOM data using trained SDV TVAE model
+- Maintain realistic feature distributions and correlations
+- Publish batches to Kafka with configurable rate
+- Track generation metrics (throughput, data quality)
 
-3. PREPROCESSING PHASE
-   ┌─────────────┐
-   │   Impute    │ → Median imputation
-   │   Missing   │
-   └─────────────┘
-         ↓
-   ┌─────────────┐
-   │ Standardize │ → Mean=0, Std=1
-   │  Features   │
-   └─────────────┘
-         ↓
-   ┌─────────────┐
-   │   Quality   │ → Check for anomalies
-   │    Check    │
-   └─────────────┘
-         ↓
-   ┌─────────────┐
-   │    Store    │ → Save to preprocessed_data
-   │ Preprocessed│
-   └─────────────┘
+**Key Technologies**:
+- SDV (Synthetic Data Vault) for data generation
+- Kafka Producer for streaming
+- Prometheus client for metrics
 
-4. MONITORING PHASE
-   ┌─────────────┐
-   │  Metrics    │ → Prometheus counters/histograms
-   │ Collection  │
-   └─────────────┘
-         ↓
-   ┌─────────────┐
-   │  Grafana    │ → Real-time dashboards
-   │Visualization│
-   └─────────────┘
-         ↓
-   ┌─────────────┐
-   │   Alerts    │ → Anomaly detection
-   │   & Logs    │
-   └─────────────┘
-```
+---
 
-## Component Interaction
+### 2. Data Processing Layer
+**Service**: `consumer`  
+**Port**: 8001 (Prometheus metrics)  
+**Language**: Python
 
-```
-┌──────────┐  HTTP:8000  ┌────────────┐
-│ Producer │──metrics───>│ Prometheus │
-└──────────┘             └────────────┘
-     │                         │
-     │ Kafka                   │
-     v                         v
-┌──────────┐             ┌────────────┐
-│  Topic   │             │  Grafana   │
-│Raw Data  │             └────────────┘
-└──────────┘
-     │
-     │ Consume
-     v
-┌──────────┐  HTTP:8001  ┌────────────┐
-│ Consumer │──metrics───>│ Prometheus │
-└──────────┘             └────────────┘
-     │
-     │ Store
-     v
-┌──────────┐  TCP:5432   ┌────────────┐
-│PostgreSQL│<────────────│  pgAdmin   │
-└──────────┘             └────────────┘
-```
+**Responsibilities**:
+- Consume raw data from Kafka topic
+- Apply preprocessing pipeline:
+  - Median imputation for missing values
+  - Standardization (z-score normalization)
+  - Feature engineering
+- Store both raw and preprocessed data
+- Track data quality metrics
+- Handle errors via Dead Letter Queue
 
-## Database Schema
+**Key Technologies**:
+- Kafka Consumer with consumer groups
+- Pandas & NumPy for data processing
+- PostgreSQL for persistence
+- Scikit-learn for preprocessing
 
-```sql
-secom (schema)
-│
-├── raw_data
-│   ├── id (UUID, PK)
-│   ├── batch_id (VARCHAR)
-│   ├── sample_index (INTEGER)
-│   ├── features (JSONB)  -- 590 features
-│   ├── target (INTEGER)  -- -1 or 1
-│   └── metadata (timestamps, kafka info)
-│
-├── preprocessed_data
-│   ├── id (UUID, PK)
-│   ├── raw_data_id (UUID, FK)
-│   ├── features (JSONB)  -- preprocessed features
-│   ├── target (INTEGER)
-│   └── quality_metrics
-│
-├── batch_metadata
-│   ├── id (UUID, PK)
-│   ├── batch_id (VARCHAR, UNIQUE)
-│   ├── statistics (counts, distributions)
-│   └── processing_info (status, duration)
-│
-├── dead_letter_queue
-│   ├── id (UUID, PK)
-│   ├── message_data
-│   ├── error_info
-│   └── retry_tracking
-│
-├── data_quality_metrics
-│   ├── id (UUID, PK)
-│   ├── batch_id (VARCHAR, FK)
-│   ├── metric_name
-│   ├── metric_value
-│   └── anomaly_detection
-│
-└── pipeline_audit_log
-    ├── id (UUID, PK)
-    ├── event_type
-    ├── event_status
-    ├── metadata (JSONB)
-    └── timestamp
+---
+
+### 3. ML Inference Layer
+**Service**: `inference`  
+**Port**: 8002 (Prometheus metrics)  
+**Language**: Python
+
+**Responsibilities**:
+- Load active model from registry
+- Make real-time predictions on preprocessed data
+- Calculate prediction confidence and uncertainty
+- **Performance Monitoring**:
+  - Track hourly accuracy, precision, recall, F1
+  - Detect performance degradation
+  - Trigger retraining when accuracy < 85% or F1 < 80%
+- **Drift Detection**:
+  - Run KS-test on feature distributions every 6 hours
+  - Compare prediction distributions
+  - Alert on significant drift (p-value < 0.05)
+- Store all predictions with metadata
+
+**Key Features**:
+- Configurable confidence thresholds
+- Sliding window performance calculation
+- Statistical drift detection (Kolmogorov-Smirnov test)
+- Automated trigger generation
+
+---
+
+### 4. Continuous Learning Layer
+
+#### 4a. Model Trainer
+**Service**: `model_trainer.py` (invoked by retrainer)  
+**Language**: Python
+
+**Responsibilities**:
+- Train multiple model types in parallel:
+  - Logistic Regression
+  - Random Forest
+  - Gradient Boosting
+- Hyperparameter optimization via GridSearchCV
+- 5-fold stratified cross-validation
+- Model comparison based on F1 score
+- Register models with full metadata
+- Save model artifacts to disk
+
+**Training Process**:
+```python
+1. Load data from PostgreSQL (last N days)
+2. Split into train/test sets (80/20)
+3. For each model type:
+   a. Grid search with CV
+   b. Train on full training set
+   c. Evaluate on test set
+   d. Register in database
+4. Select best model by F1 score
+5. Deploy if auto-deploy enabled
 ```
 
-## Metrics Collected
+#### 4b. Retrainer Service
+**Service**: `retrainer`  
+**Port**: 8003 (Prometheus metrics)  
+**Language**: Python
 
-### Producer Metrics
-- `secom_batches_generated_total` - Counter
-- `secom_samples_generated_total` - Counter
-- `secom_kafka_messages_sent_total` - Counter
-- `secom_kafka_send_errors_total` - Counter
-- `secom_generation_duration_seconds` - Histogram
-- `secom_active_batches` - Gauge
+**Responsibilities**:
+- Poll for retraining triggers every 5 minutes
+- Execute training pipeline when triggered
+- Manage training job lifecycle
+- Enforce cooldown period (6 hours)
+- Auto-deploy best model (configurable)
+- Track retraining history
 
-### Consumer Metrics
-- `secom_messages_consumed_total` - Counter
-- `secom_batches_processed_total` - Counter
-- `secom_preprocessing_errors_total` - Counter
-- `secom_preprocessing_duration_seconds` - Histogram
-- `secom_db_insert_duration_seconds` - Histogram
-- `secom_dlq_messages_total` - Counter
-- `secom_active_processing_batches` - Gauge
+**Trigger Types**:
+- `performance_degradation`: Model metrics below threshold
+- `data_drift`: Significant distribution shift detected
+- `scheduled`: Periodic retraining (cron-like)
+- `manual`: User-initiated
 
-## Technology Stack Details
+---
 
-| Layer | Technology | Purpose |
-|-------|-----------|---------|
-| **Data Generation** | SDV (TVAE) | Synthetic SECOM data with realistic missing patterns |
-| **Message Queue** | Apache Kafka 7.5 (KRaft) | Distributed streaming platform |
-| **Database** | PostgreSQL 16 | ACID-compliant data storage |
-| **Preprocessing** | scikit-learn, pandas | ML preprocessing operations |
-| **Monitoring** | Prometheus 2.x | Metrics collection |
-| **Visualization** | Grafana | Dashboard and alerting |
-| **Logging** | Loguru | Structured logging |
-| **Containerization** | Docker, Docker Compose | Service orchestration |
+### 5. Data Persistence Layer
+**Service**: `postgres`  
+**Port**: 5432  
+**Database**: PostgreSQL 16
 
-## Scalability Considerations
+**Schema Design**:
 
-1. **Horizontal Scaling**
-   - Kafka: Add partitions for parallel processing
-   - Consumer: Run multiple consumer instances in same group
-   - Database: Read replicas for query load
+#### Core Tables
+- `raw_data`: Original features (JSONB), target, Kafka metadata
+- `preprocessed_data`: Cleaned features, quality metrics
+- `batch_metadata`: Batch statistics, processing duration
+- `dead_letter_queue`: Failed messages for debugging
+- `pipeline_audit_log`: Event tracking
 
-2. **Vertical Scaling**
-   - Increase Kafka broker resources
-   - Optimize PostgreSQL connection pool
-   - GPU acceleration for preprocessing
+#### ML Operations Tables  
+- `model_registry`: Model metadata, hyperparameters, test metrics
+- `predictions`: All predictions with confidence scores
+- `model_performance_metrics`: Time-windowed performance
+- `data_drift_metrics`: Drift detection results
+- `retraining_triggers`: Retraining events and outcomes
+- `feature_importance`: Feature importance tracking
 
-3. **Performance Optimization**
-   - Batch processing for efficiency
-   - Connection pooling for database
-   - Compression for Kafka messages
-   - Indexing for database queries
+#### Views
+- `active_model_performance`: Current model metrics
+- `recent_predictions_summary`: Latest predictions
+- `drift_detection_summary`: Drift overview
+- `model_comparison`: Compare model versions
+
+**Indexes**: Optimized for time-series queries, feature lookups
+
+---
+
+### 6. Monitoring & Observability
+
+#### 6a. Prometheus
+**Service**: `prometheus`  
+**Port**: 9090  
+**Purpose**: Metrics collection
+
+**Scraped Services**:
+- Producer (8000)
+- Consumer (8001)
+- Inference (8002)
+- Retrainer (8003)
+
+**Key Metrics**:
+```promql
+# Throughput
+rate(secom_batches_generated_total[5m])
+rate(secom_predictions_made_total[5m])
+
+# Model Performance
+secom_model_accuracy
+secom_model_f1_score
+
+# Latency
+histogram_quantile(0.95, secom_inference_duration_seconds_bucket)
+
+# Drift & Retraining
+secom_drift_detected_total
+secom_retraining_triggered_total
+secom_models_deployed_total
+```
+
+#### 6b. Grafana
+**Service**: `grafana`  
+**Port**: 3000  
+**Purpose**: Visualization
+
+**Dashboards**:
+1. **ML Performance Dashboard**:
+   - Real-time accuracy/F1 score graphs
+   - Prediction throughput
+   - Inference latency (p50, p95, p99)
+   - Low confidence prediction alerts
+   - Drift detection events
+   - Retraining job status
+
+2. **Pipeline Health Dashboard**:
+   - Service status
+   - Kafka lag
+   - Database connections
+   - Error rates
+
+---
+
+## 🔄 Data Flow
+
+### Normal Operation Flow
+```
+1. Producer generates batch (100 samples)
+   ↓
+2. Publishes to Kafka topic 'secom-raw-data'
+   ↓
+3. Consumer reads batch
+   ↓
+4. Preprocessing applied
+   ↓
+5. Store raw + preprocessed to PostgreSQL
+   ↓
+6. Inference polls for new preprocessed data
+   ↓
+7. Load active model
+   ↓
+8. Make predictions
+   ↓
+9. Store predictions with confidence scores
+   ↓
+10. (Hourly) Calculate performance metrics
+    ↓
+11. (Every 6h) Check for data drift
+```
+
+### Continuous Learning Flow
+```
+1. Inference detects performance degradation
+   (Accuracy < 85% or F1 < 80%)
+   ↓
+2. Create retraining trigger in database
+   ↓
+3. Retrainer polls and picks up trigger
+   ↓
+4. Execute training pipeline:
+   - Load last 7 days of data
+   - Train 3 model types
+   - Compare results
+   ↓
+5. Select best model (highest F1)
+   ↓
+6. Register new model version
+   ↓
+7. Auto-deploy (activate model)
+   ↓
+8. Inference automatically switches to new model
+   ↓
+9. Update trigger status to 'completed'
+   ↓
+10. Enforce 6-hour cooldown period
+```
+
+### Drift Detection Flow
+```
+1. Inference service (every 6 hours):
+   ↓
+2. Query baseline data (last 7 days)
+   ↓
+3. Query current window data (last 6 hours)
+   ↓
+4. For each feature (sample):
+   - Run Kolmogorov-Smirnov test
+   - Calculate drift score
+   ↓
+5. If drift detected (p-value < 0.05):
+   - Record drift metric
+   - Increment drift counter
+   ↓
+6. If significant drift (>10% features):
+   - Create retraining trigger
+   - Alert via Grafana
+```
+
+---
+
+## 🔐 Security Considerations
+
+### Current Implementation
+- Environment-based configuration
+- Database connection pooling
+- Kafka consumer groups for load balancing
+
+### Production Enhancements
+- [ ] Kafka SASL/SSL authentication
+- [ ] PostgreSQL SSL connections
+- [ ] API authentication (JWT)
+- [ ] Secrets management (Vault/AWS Secrets Manager)
+- [ ] Network segmentation
+- [ ] Rate limiting
+- [ ] Audit logging encryption
+
+---
+
+## 📈 Scalability
+
+### Horizontal Scaling
+- **Consumer**: Add replicas (Kafka consumer group handles partitioning)
+- **Inference**: Multiple instances behind load balancer
+- **PostgreSQL**: Read replicas for analytics queries
+
+### Vertical Scaling
+- **Database**: Increase connection pool size
+- **Inference**: GPU acceleration for larger models
+- **Training**: Distributed training (Dask, Ray)
+
+### Performance Optimization
+- Batch size tuning
+- Database query optimization
+- Caching layer (Redis)
+- Model quantization
+- Feature selection
+
+---
+
+## 🛠️ Technology Stack
+
+| Component | Technology | Version |
+|-----------|-----------|---------|
+| Message Queue | Apache Kafka (KRaft) | 7.5.0 |
+| Database | PostgreSQL | 16 |
+| ML Framework | Scikit-learn | Latest |
+| Data Processing | Pandas, NumPy | Latest |
+| Synthetic Data | SDV | Latest |
+| Monitoring | Prometheus + Grafana | Latest |
+| Container Runtime | Docker Compose | Latest |
+| Language | Python | 3.11+ |
+
+---
+
+## 📊 Performance Characteristics
+
+### Throughput
+- **Producer**: 100-500 samples/second
+- **Consumer**: 200-1000 samples/second
+- **Inference**: 500-2000 predictions/second
+
+### Latency
+- **E2E Pipeline**: ~2-5 seconds (ingestion → prediction)
+- **Inference**: ~2-5ms per prediction (p95)
+- **Training**: 5-30 minutes (depending on data size)
+
+### Storage
+- **Raw Data**: ~50KB per batch (100 samples)
+- **Predictions**: ~5KB per batch
+- **Models**: ~5-50MB per model
+
+---
+
+## 🔄 Failure Modes & Recovery
+
+### Producer Failure
+- **Impact**: No new data generated
+- **Recovery**: Auto-restart via Docker
+- **Mitigation**: Kafka retains last N hours of data
+
+### Consumer Failure
+- **Impact**: Data backlog in Kafka
+- **Recovery**: Consumer catches up on restart (offset tracking)
+- **Mitigation**: Dead Letter Queue for bad messages
+
+### Inference Failure
+- **Impact**: No predictions made
+- **Recovery**: Auto-restart, pending data queued
+- **Mitigation**: Multiple inference instances
+
+### Database Failure
+- **Impact**: Pipeline halts
+- **Recovery**: PostgreSQL auto-restart
+- **Mitigation**: Regular backups, connection retry logic
+
+### Model Performance Degradation
+- **Impact**: Poor predictions
+- **Recovery**: Automatic retraining triggered
+- **Mitigation**: Performance monitoring, drift detection
+
+---
+
+**Last Updated**: December 2024  
+**Version**: 2.0 (Complete ML Pipeline with Continuous Learning)

@@ -1,0 +1,166 @@
+{
+  "dashboard": {
+    "title": "SECOM ML Pipeline - Model Performance",
+    "tags": ["ml", "secom", "performance"],
+    "timezone": "browser",
+    "panels": [
+      {
+        "title": "Model Accuracy (Real-time)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "secom_model_accuracy",
+            "legendFormat": "Model Accuracy",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "percentunit", "label": "Accuracy", "min": 0, "max": 1}
+        ]
+      },
+      {
+        "title": "Model F1 Score (Real-time)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "secom_model_f1_score",
+            "legendFormat": "F1 Score",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "percentunit", "label": "F1 Score", "min": 0, "max": 1}
+        ]
+      },
+      {
+        "title": "Predictions Made",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "rate(secom_predictions_made_total[5m])",
+            "legendFormat": "Predictions/sec",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "title": "Inference Latency (p95, p99)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(secom_inference_duration_seconds_bucket[5m]))",
+            "legendFormat": "p95",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(secom_inference_duration_seconds_bucket[5m]))",
+            "legendFormat": "p99",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Latency"}
+        ]
+      },
+      {
+        "title": "Low Confidence Predictions",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "rate(secom_low_confidence_predictions_total[1h])",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 0.1},
+                {"color": "red", "value": 0.5}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "title": "Drift Detections",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 16},
+        "targets": [
+          {
+            "expr": "sum(increase(secom_drift_detected_total[24h]))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 5},
+                {"color": "red", "value": 20}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "title": "Retraining Triggers",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 16},
+        "targets": [
+          {
+            "expr": "sum(increase(secom_retraining_triggered_total[24h]))",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "title": "Models Deployed",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 18, "y": 16},
+        "targets": [
+          {
+            "expr": "sum(increase(secom_models_deployed_total[7d]))",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "title": "Retraining Jobs Status",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20},
+        "targets": [
+          {
+            "expr": "sum by(status) (increase(secom_retraining_jobs_completed_total[1h]))",
+            "legendFormat": "{{status}}",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "title": "Active Training Jobs",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20},
+        "targets": [
+          {
+            "expr": "secom_active_training_jobs",
+            "legendFormat": "Active Jobs",
+            "refId": "A"
+          }
+        ]
+      }
+    ],
+    "refresh": "10s",
+    "schemaVersion": 27,
+    "version": 1
+  }
+}

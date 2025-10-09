@@ -10,26 +10,46 @@ scrape_configs:
   # Producer metrics
   - job_name: 'secom-producer'
     static_configs:
-      - targets: ['host.docker.internal:8000']
+      - targets: ['producer:8000']
         labels:
           service: 'producer'
+          component: 'data_generation'
           environment: 'development'
 
   # Consumer metrics
   - job_name: 'secom-consumer'
     static_configs:
-      - targets: ['host.docker.internal:8001']
+      - targets: ['consumer:8001']
         labels:
           service: 'consumer'
+          component: 'data_processing'
+          environment: 'development'
+
+  # Inference metrics
+  - job_name: 'secom-inference'
+    static_configs:
+      - targets: ['inference:8002']
+        labels:
+          service: 'inference'
+          component: 'ml_inference'
+          environment: 'development'
+
+  # Retrainer metrics
+  - job_name: 'secom-retrainer'
+    static_configs:
+      - targets: ['retrainer:8003']
+        labels:
+          service: 'retrainer'
+          component: 'ml_training'
           environment: 'development'
 
   # PostgreSQL metrics (requires postgres_exporter)
-  - job_name: 'postgresql'
-    static_configs:
-      - targets: ['postgres-exporter:9187']
-        labels:
-          service: 'database'
-          environment: 'development'
+  # - job_name: 'postgresql'
+  #   static_configs:
+  #     - targets: ['postgres-exporter:9187']
+  #       labels:
+  #         service: 'database'
+  #         environment: 'development'
 
   # Kafka metrics
   - job_name: 'kafka'
@@ -37,6 +57,7 @@ scrape_configs:
       - targets: ['kafka:9101']
         labels:
           service: 'kafka'
+          component: 'message_queue'
           environment: 'development'
 
   # Prometheus self-monitoring

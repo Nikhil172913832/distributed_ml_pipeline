@@ -5,18 +5,36 @@
 help:
 	@echo "SECOM ML Pipeline - Available Commands:"
 	@echo ""
-	@echo "  make setup      - Initial setup (install deps, start services)"
-	@echo "  make start      - Start all Docker services"
-	@echo "  make stop       - Stop all Docker services"
-	@echo "  make restart    - Restart all services"
-	@echo "  make clean      - Stop services and remove volumes"
-	@echo "  make producer   - Run the data producer"
-	@echo "  make consumer   - Run the data consumer"
-	@echo "  make test       - Run tests"
-	@echo "  make lint       - Run linting"
-	@echo "  make format     - Format code with black"
-	@echo "  make health     - Check service health"
-	@echo "  make logs       - View all logs"
+	@echo "  === Service Management ==="
+	@echo "  make setup          - Initial setup (install deps, start services)"
+	@echo "  make start          - Start all Docker services"
+	@echo "  make stop           - Stop all Docker services"
+	@echo "  make restart        - Restart all services"
+	@echo "  make clean          - Stop services and remove volumes"
+	@echo ""
+	@echo "  === Run Components ==="
+	@echo "  make producer       - Run the data producer"
+	@echo "  make consumer       - Run the data consumer"
+	@echo "  make inference      - Run the inference engine"
+	@echo "  make retrainer      - Run the retrainer service"
+	@echo "  make train          - Train models manually"
+	@echo ""
+	@echo "  === Development ==="
+	@echo "  make test           - Run tests"
+	@echo "  make lint           - Run linting"
+	@echo "  make format         - Format code with black"
+	@echo ""
+	@echo "  === Monitoring ==="
+	@echo "  make health         - Check service health"
+	@echo "  make logs           - View all logs"
+	@echo "  make status         - Show pipeline status"
+	@echo "  make metrics        - Show current metrics"
+	@echo ""
+	@echo "  === ML Operations ==="
+	@echo "  make model-info     - Show active model info"
+	@echo "  make performance    - Show model performance"
+	@echo "  make drift-status   - Show drift detection status"
+	@echo "  make trigger-retrain - Manually trigger retraining"
 	@echo ""
 
 setup:
@@ -27,6 +45,12 @@ setup:
 start:
 	@echo "Starting Docker services..."
 	docker-compose up -d
+	@echo ""
+	@echo "Service URLs:"
+	@echo "  - Kafka UI:   http://localhost:8080"
+	@echo "  - pgAdmin:    http://localhost:8081"
+	@echo "  - Prometheus: http://localhost:9090"
+	@echo "  - Grafana:    http://localhost:3000 (admin/admin)"
 
 stop:
 	@echo "Stopping Docker services..."
@@ -47,6 +71,18 @@ producer:
 consumer:
 	@echo "Starting consumer..."
 	source .venv/bin/activate && python pipeline/consumer.py
+
+inference:
+	@echo "Starting inference engine..."
+	source .venv/bin/activate && python pipeline/inference.py
+
+retrainer:
+	@echo "Starting retrainer service..."
+	source .venv/bin/activate && python pipeline/retrainer.py
+
+train:
+	@echo "Training models..."
+	source .venv/bin/activate && python pipeline/model_trainer.py --triggered-by manual --auto-deploy
 
 test:
 	@echo "Running tests..."
@@ -74,6 +110,12 @@ logs-producer:
 logs-consumer:
 	tail -f logs/consumer_*.log
 
+logs-inference:
+	tail -f logs/inference_*.log
+
+logs-retrainer:
+	tail -f logs/retrainer_*.log
+
 kafka-topics:
 	@echo "Listing Kafka topics..."
 	docker exec kafka kafka-topics --list --bootstrap-server localhost:9092
@@ -90,3 +132,37 @@ install-dev:
 	@echo "Installing development dependencies..."
 	source .venv/bin/activate && pip install -r requirements.txt
 	source .venv/bin/activate && pip install pytest-asyncio httpx black flake8 mypy
+
+status:
+	@echo "=== SECOM ML Pipeline Status ==="
+	@echo ""
+	@docker-compose ps
+	@echo ""
+	@echo "Recent Activity:"
+	@docker exec -i postgres psql -U ml_user -d secom_pipeline -c \
+		"SELECT event_type, event_status, component, created_at FROM secom.pipeline_audit_log ORDER BY created_at DESC LIMIT 5;" 2>/dev/null || echo "Database not ready"
+
+metrics:
+	@echo "Fetching current metrics..."
+	@curl -s http://localhost:9090/api/v1/query?query=secom_predictions_made_total 2>/dev/null | grep -o '"value":\[[^]]*\]' || echo "Prometheus not ready"
+
+model-info:
+	@echo "=== Active Model Information ==="
+	@docker exec -i postgres psql -U ml_user -d secom_pipeline -c \
+		"SELECT model_name, model_version, model_type, test_accuracy, test_f1_score, deployed_at FROM secom.model_registry WHERE is_active = TRUE;"
+
+performance:
+	@echo "=== Model Performance (Last 24h) ==="
+	@docker exec -i postgres psql -U ml_user -d secom_pipeline -c \
+		"SELECT window_start, window_end, accuracy, precision, recall, f1_score, total_predictions FROM secom.model_performance_metrics ORDER BY window_end DESC LIMIT 10;"
+
+drift-status:
+	@echo "=== Drift Detection Status ==="
+	@docker exec -i postgres psql -U ml_user -d secom_pipeline -c \
+		"SELECT * FROM secom.drift_detection_summary;"
+
+trigger-retrain:
+	@echo "Triggering manual retraining..."
+	@docker exec -i postgres psql -U ml_user -d secom_pipeline -c \
+		"INSERT INTO secom.retraining_triggers (trigger_type, trigger_reason, status) VALUES ('manual', 'Manual trigger via Makefile', 'pending');"
+	@echo "✓ Retraining triggered! Monitor with 'make logs-retrainer'"
