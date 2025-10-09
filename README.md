@@ -76,17 +76,7 @@ make trigger-retrain
 
 **Automated triggers**: Performance < 85% accuracy/80% F1, or drift detected (p-value < 0.05)
 
-## 📊 Monitoring
 
-| Service | URL | Credentials |
-|---------|-----|-------------|
-| Grafana | http://localhost:3000 | admin/admin |
-| Prometheus | http://localhost:9090 | - |
-| Kafka UI | http://localhost:8080 | - |
-
-**Grafana Dashboards**:
-- ML Performance: Accuracy, F1, drift events, retraining status
-- Pipeline Health: Service status, throughput, errors
 
 ## 📚 Documentation
 
@@ -120,12 +110,6 @@ make clean           # Reset everything
 - **Accuracy**: >85% maintained via continuous learning
 - **Training**: 5-30 minutes per retraining cycle
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create feature branch
-3. Add tests
-4. Submit pull request
 
 ## 📊 Monitoring
 
@@ -151,23 +135,6 @@ secom_drift_detected_total
 secom_retraining_triggered_total
 ```
 
-### Grafana Dashboards
-
-Access Grafana: `http://localhost:3000` (admin/admin)
-
-**ML Performance Dashboard**:
-- Real-time accuracy and F1 score
-- Prediction distribution
-- Inference latency percentiles
-- Low confidence alerts
-- Drift detection events
-- Retraining job status
-
-**Pipeline Health Dashboard**:
-- Service status
-- Kafka lag
-- Database connections
-- Error rates
 
 
 
