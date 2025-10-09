@@ -9,7 +9,7 @@ This project implements a **complete, production-ready MLOps system** for semico
 Built a comprehensive distributed system that:
 - ✅ Generates realistic synthetic manufacturing data
 - ✅ Processes data in real-time with Kafka streaming
-- ✅ Makes predictions with sub-5ms latency
+- ✅ Makes predictions with confidence scoring
 - ✅ **Automatically detects model degradation**
 - ✅ **Triggers retraining without human intervention**
 - ✅ **Deploys improved models seamlessly**
@@ -50,12 +50,12 @@ Complete model lifecycle management:
 
 **Real-world Impact**: Audit trail for model changes, easy debugging, compliance-ready.
 
-### 4. Production-Grade Observability
+### Production-Grade Observability
 Comprehensive monitoring stack:
 
 - **Custom Metrics**: 20+ Prometheus metrics across all services
 - **Grafana Dashboards**: Real-time ML performance + pipeline health
-- **Latency Tracking**: p50/p95/p99 percentiles for inference
+- **Latency Tracking**: Percentile metrics for inference performance
 - **Error Handling**: Dead Letter Queue with retry logic
 - **Audit Logging**: Complete event trail in PostgreSQL
 
@@ -165,20 +165,20 @@ Comprehensive monitoring stack:
 
 ## 📈 Performance Characteristics
 
-### Throughput
-- **Producer**: 100-500 samples/second
-- **Consumer**: 200-1000 samples/second
-- **Inference**: 500-2000 predictions/second
+### Measured Metrics
+The system provides comprehensive observability:
+- **Throughput**: Tracked via Prometheus counters
+- **Latency**: Measured via Prometheus histogram percentiles
+- **Accuracy**: Stored in `model_performance_metrics` table
 
-### Latency
-- **End-to-End**: ~2-5 seconds (generation → prediction)
-- **Inference (p95)**: <5ms per prediction
-- **Training**: 5-30 minutes (depends on data size)
+### Benchmarking
+Performance varies based on:
+- Hardware specifications
+- Model complexity
+- Data volume
+- Configuration settings
 
-### Accuracy
-- **Initial Model**: ~90% accuracy, ~0.85 F1
-- **Continuous Learning**: Maintains >85% accuracy over time
-- **Drift Detection**: Catches >95% of distribution shifts
+**Recommendation**: Run benchmarks on your specific deployment to establish performance baselines.
 
 ---
 
@@ -378,7 +378,7 @@ This project demonstrates mastery of:
 
 This project represents a **complete, production-ready MLOps system** that goes far beyond typical ML demos. It implements:
 
-✅ **Real-time ML inference** with sub-5ms latency  
+✅ **Real-time ML inference** with confidence scoring  
 ✅ **Automated continuous learning** without human intervention  
 ✅ **Statistical drift detection** to catch data changes  
 ✅ **Complete observability** with Prometheus + Grafana  
@@ -397,6 +397,5 @@ This project represents a **complete, production-ready MLOps system** that goes 
 - **Services**: 10+ microservices
 - **Database Tables**: 13 tables + views
 - **Prometheus Metrics**: 20+ custom metrics
-- **Development Time**: Comprehensive implementation
 
 **Built with ❤️ to demonstrate best practices in MLOps, distributed systems, and production ML.**

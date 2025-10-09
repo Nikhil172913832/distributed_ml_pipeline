@@ -4,7 +4,7 @@
 
 ## ✨ Key Features
 
-- 🎯 **Real-time Inference**: Sub-5ms predictions with confidence scoring
+- 🎯 **Real-time Inference**: Predictions with confidence scoring
 - 🔄 **Continuous Learning**: Auto-retraining when accuracy < 85% or drift detected
 - 📊 **Drift Detection**: Statistical monitoring (KS-test) every 6 hours
 - 🗂️ **Model Registry**: Complete version control with metadata
@@ -40,7 +40,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed diagrams.
 ./setup.sh
 
 # 2. Start all services
-make up
+make start
 
 # 3. Monitor
 open http://localhost:3000  # Grafana (admin/admin)
@@ -80,10 +80,38 @@ make trigger-retrain
 
 ## 📚 Documentation
 
-- **[ARCHITECTURE.md](ARCHITECTURE.md)**: Complete system architecture (600+ lines)
-- **[ML_PIPELINE_GUIDE.md](ML_PIPELINE_GUIDE.md)**: ML operations deep dive (300+ lines)
+- **[ARCHITECTURE.md](ARCHITECTURE.md)**: Complete system architecture
+- **[ML_PIPELINE_GUIDE.md](ML_PIPELINE_GUIDE.md)**: ML operations deep dive
 - **[DEPLOYMENT.md](DEPLOYMENT.md)**: Quick deployment guide
+- **[BENCHMARKING.md](BENCHMARKING.md)**: Performance measurement guide
+- **[benchmarks/](benchmarks/)**: Reproducible benchmark scripts
 - **[PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)**: Executive overview
+
+## 📊 Performance Benchmarking
+
+Measure actual performance on your hardware:
+
+```bash
+# Run k6 load test (recommended)
+make bench
+
+# Run Python benchmark
+make bench-python
+
+# Run all benchmarks
+make bench-all
+```
+
+**Example output:**
+```
+✓ Prediction rate: 24.5 predictions/sec
+✓ Inference latency (p95): 67ms
+✓ Model accuracy: 87.3%
+```
+
+Results saved to `benchmarks/results/` with timestamps. See **[benchmarks/README.md](benchmarks/README.md)** for detailed usage and **[BENCHMARKING.md](BENCHMARKING.md)** for comprehensive measurement guide.
+
+**Note:** Performance varies by hardware/configuration. Always benchmark your deployment!
 
 ## 🧪 Testing
 
@@ -103,15 +131,7 @@ make clean           # Reset everything
 
 **Common issues**: See [DEPLOYMENT.md](DEPLOYMENT.md#troubleshooting)
 
-## 📈 Performance
-
-- **Throughput**: 500-2000 predictions/sec
-- **Latency**: <5ms (p95)
-- **Accuracy**: >85% maintained via continuous learning
-- **Training**: 5-30 minutes per retraining cycle
-
-
-## 📊 Monitoring
+##  Monitoring
 
 ### Prometheus Metrics
 

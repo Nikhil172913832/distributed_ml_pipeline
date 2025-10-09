@@ -1,6 +1,6 @@
 # Makefile for SECOM ML Pipeline
 
-.PHONY: help setup start stop restart clean test lint format health logs
+.PHONY: help setup start stop restart clean test lint format health logs bench bench-python bench-all
 
 help:
 	@echo "SECOM ML Pipeline - Available Commands:"
@@ -35,6 +35,11 @@ help:
 	@echo "  make performance    - Show model performance"
 	@echo "  make drift-status   - Show drift detection status"
 	@echo "  make trigger-retrain - Manually trigger retraining"
+	@echo ""
+	@echo "  === Benchmarking ==="
+	@echo "  make bench          - Run k6 load test (recommended)"
+	@echo "  make bench-python   - Run Python benchmark script"
+	@echo "  make bench-all      - Run all benchmarks"
 	@echo ""
 
 setup:
@@ -166,3 +171,48 @@ trigger-retrain:
 	@docker exec -i postgres psql -U ml_user -d secom_pipeline -c \
 		"INSERT INTO secom.retraining_triggers (trigger_type, trigger_reason, status) VALUES ('manual', 'Manual trigger via Makefile', 'pending');"
 	@echo "✓ Retraining triggered! Monitor with 'make logs-retrainer'"
+
+bench:
+	@echo "=== Running k6 Load Test ==="
+	@echo ""
+	@if ! command -v k6 &> /dev/null; then \
+		echo "Error: k6 is not installed!"; \
+		echo ""; \
+		echo "Install k6:"; \
+		echo "  macOS:   brew install k6"; \
+		echo "  Linux:   sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69"; \
+		echo "           echo 'deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main' | sudo tee /etc/apt/sources.list.d/k6.list"; \
+		echo "           sudo apt-get update"; \
+		echo "           sudo apt-get install k6"; \
+		echo ""; \
+		echo "Or use: make bench-python"; \
+		exit 1; \
+	fi
+	@echo "Checking if services are running..."
+	@docker-compose ps | grep -q "Up" || (echo "Error: Services not running. Run 'make start' first." && exit 1)
+	@echo ""
+	k6 run benchmarks/k6-inference.js
+	@echo ""
+	@echo "✓ Benchmark complete! Check output above."
+
+bench-python:
+	@echo "=== Running Python Benchmark ==="
+	@echo ""
+	@echo "Checking if services are running..."
+	@docker-compose ps | grep -q "Up" || (echo "Error: Services not running. Run 'make start' first." && exit 1)
+	@echo ""
+	@timestamp=$$(date +%Y-%m-%d_%H%M%S); \
+	source .venv/bin/activate && \
+	python benchmarks/benchmark_pipeline.py \
+		--duration 60 \
+		--output "benchmarks/results/benchmark_$$timestamp.json"
+	@echo ""
+	@echo "✓ Benchmark saved to benchmarks/results/"
+	@echo "  Latest: benchmarks/results/benchmark_latest.json"
+
+bench-all: bench-python bench
+	@echo ""
+	@echo "=== All Benchmarks Complete ==="
+	@echo ""
+	@echo "Results saved to:"
+	@ls -lht benchmarks/results/ | head -n 5

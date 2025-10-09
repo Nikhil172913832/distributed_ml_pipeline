@@ -409,15 +409,14 @@ secom_models_deployed_total
 
 ## 📊 Performance Characteristics
 
-### Throughput
-- **Producer**: 100-500 samples/second
-- **Consumer**: 200-1000 samples/second
-- **Inference**: 500-2000 predictions/second
+### Expected Behavior
+Performance will vary based on hardware, configuration, and data characteristics. Benchmark your specific deployment to establish baselines.
 
-### Latency
-- **E2E Pipeline**: ~2-5 seconds (ingestion → prediction)
-- **Inference**: ~2-5ms per prediction (p95)
-- **Training**: 5-30 minutes (depending on data size)
+### Monitoring
+The system provides metrics to measure actual performance:
+- Throughput rates via Prometheus counters
+- Latency percentiles via Prometheus histograms
+- Accuracy/F1 scores tracked in database
 
 ### Storage
 - **Raw Data**: ~50KB per batch (100 samples)
