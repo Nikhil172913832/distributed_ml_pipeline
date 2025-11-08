@@ -2,16 +2,16 @@
 
 **Production-ready MLOps system** for semiconductor manufacturing quality control with real-time inference, automated retraining, and drift detection.
 
-## ✨ Key Features
+## Key Features
 
-- 🎯 **Real-time Inference**: Predictions with confidence scoring
-- 🔄 **Continuous Learning**: Auto-retraining when accuracy < 85% or drift detected
-- 📊 **Drift Detection**: Statistical monitoring (KS-test) every 6 hours
-- 🗂️ **Model Registry**: Complete version control with metadata
-- 📈 **Observability**: Prometheus + Grafana dashboards
-- 🐳 **Production-Ready**: Full Docker orchestration
+- **Real-time Inference**: Predictions with confidence scoring
+- **Continuous Learning**: Auto-retraining when accuracy < 85% or drift detected
+- **Drift Detection**: Statistical monitoring (KS-test) every 6 hours
+- **Model Registry**: Complete version control with metadata
+- **Observability**: Prometheus + Grafana dashboards
+- **Production-Ready**: Full Docker orchestration
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 Data → Kafka → Preprocessing → PostgreSQL → Inference → Continuous Learning
@@ -33,7 +33,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed diagrams.
 | Monitoring | Prometheus + Grafana |
 | Orchestration | Docker Compose |
 
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
 # 1. Setup environment
@@ -54,7 +54,7 @@ make performance # Model accuracy/F1
 ```
 
 
-## 🤖 ML Operations
+## ML Operations
 
 ### Training
 ```bash
@@ -78,7 +78,7 @@ make trigger-retrain
 
 
 
-## 📚 Documentation
+## Documentation
 
 - **[ARCHITECTURE.md](ARCHITECTURE.md)**: Complete system architecture
 - **[ML_PIPELINE_GUIDE.md](ML_PIPELINE_GUIDE.md)**: ML operations deep dive
@@ -87,7 +87,7 @@ make trigger-retrain
 - **[benchmarks/](benchmarks/)**: Reproducible benchmark scripts
 - **[PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)**: Executive overview
 
-## 📊 Performance Benchmarking
+## Performance Benchmarking
 
 Measure actual performance on your hardware:
 
@@ -113,14 +113,14 @@ Results saved to `benchmarks/results/` with timestamps. See **[benchmarks/README
 
 **Note:** Performance varies by hardware/configuration. Always benchmark your deployment!
 
-## 🧪 Testing
+## Testing
 
 ```bash
 pytest tests/test_ml_pipeline.py -v  # ML integration tests
 pytest tests/ -v --cov=pipeline      # Full test suite
 ```
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ```bash
 make status          # Check all services
@@ -131,7 +131,7 @@ make clean           # Reset everything
 
 **Common issues**: See [DEPLOYMENT.md](DEPLOYMENT.md#troubleshooting)
 
-##  Monitoring
+## Monitoring
 
 ### Prometheus Metrics
 
@@ -194,4 +194,4 @@ make clean
 make up
 ```
 
-**Built with ❤️ for robust ML pipelines in production**
+**Built with for robust ML pipelines in production**
