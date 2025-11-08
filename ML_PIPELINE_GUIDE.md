@@ -1,17 +1,18 @@
-# SECOM Distributed ML Pipeline - Complete Guide
+# SECOM ML Pipeline Guide
 
-## 🎯 Overview
+## Overview
 
-This is a production-ready, end-to-end distributed machine learning pipeline for SECOM semiconductor manufacturing data, featuring:
+Distributed machine learning pipeline for SECOM semiconductor manufacturing data.
 
-- **Real-time Data Ingestion**: Kafka-based streaming with synthetic data generation
-- **Automated Preprocessing**: Feature engineering and data quality monitoring
-- **Model Inference**: Real-time predictions with confidence scoring
-- **Continuous Learning**: Automated model retraining based on performance degradation and data drift
-- **Comprehensive Monitoring**: Prometheus metrics and Grafana dashboards
-- **Data Persistence**: PostgreSQL with optimized schema for ML operations
+Features:
+- Real-time data ingestion via Kafka
+- Automated preprocessing and data quality monitoring
+- Real-time predictions with confidence scoring
+- Automated model retraining based on performance and drift
+- Prometheus metrics and Grafana dashboards
+- PostgreSQL data persistence
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -51,28 +52,28 @@ This is a production-ready, end-to-end distributed machine learning pipeline for
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 
-## 📦 Components
+## Components
 
-### 1. **Producer** (`pipeline/producer.py`)
-- Generates synthetic SECOM data using SDV (Synthetic Data Vault)
+### 1. Producer (`pipeline/producer.py`)
+- Generates synthetic SECOM data using SDV
 - Publishes to Kafka in configurable batches
 - Metrics: batch generation rate, Kafka throughput
 
-### 2. **Consumer/Preprocessor** (`pipeline/consumer.py`)
+### 2. Consumer/Preprocessor (`pipeline/consumer.py`)
 - Consumes raw data from Kafka
 - Applies preprocessing pipeline (imputation, scaling)
 - Stores raw and preprocessed data to PostgreSQL
-- Dead Letter Queue (DLQ) for failed messages
+- Dead Letter Queue for failed messages
 
-### 3. **Inference Engine** (`pipeline/inference.py`)
+### 3. Inference Engine (`pipeline/inference.py`)
 - Loads active model from registry
 - Makes predictions on preprocessed data
 - Tracks prediction confidence and uncertainty
-- **Performance Monitoring**: Calculates hourly accuracy, precision, recall, F1
-- **Drift Detection**: Statistical tests (KS-test) for feature and prediction drift
-- **Triggers Retraining**: When performance degrades or drift detected
+- Performance Monitoring: Calculates hourly accuracy, precision, recall, F1
+- Drift Detection: Statistical tests (KS-test) for feature and prediction drift
+- Triggers Retraining: When performance degrades or drift detected
 
-### 4. **Model Trainer** (`pipeline/model_trainer.py`)
+### 4. Model Trainer (`pipeline/model_trainer.py`)
 - Automated training with multiple algorithms:
   - Logistic Regression
   - Random Forest
@@ -81,24 +82,24 @@ This is a production-ready, end-to-end distributed machine learning pipeline for
 - Model comparison and selection
 - Registers models in database with full metadata
 
-### 5. **Retrainer** (`pipeline/retrainer.py`)
+### 5. Retrainer (`pipeline/retrainer.py`)
 - Monitors retraining triggers
 - Executes training pipeline when triggered
 - Auto-deploys best model (configurable)
 - Cooldown period to prevent excessive retraining
 
-## 🗄️ Database Schema
+## Database Schema
 
 ### ML Operations Tables
 
-1. **`model_registry`**: All trained models with metadata
-2. **`predictions`**: All predictions with confidence scores
-3. **`model_performance_metrics`**: Time-windowed performance tracking
-4. **`data_drift_metrics`**: Drift detection results
-5. **`retraining_triggers`**: Retraining events and reasons
-6. **`feature_importance`**: Feature importance across model versions
+1. `model_registry`: All trained models with metadata
+2. `predictions`: All predictions with confidence scores
+3. `model_performance_metrics`: Time-windowed performance tracking
+4. `data_drift_metrics`: Drift detection results
+5. `retraining_triggers`: Retraining events and reasons
+6. `feature_importance`: Feature importance across model versions
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 ```bash
@@ -155,7 +156,7 @@ python pipeline/model_trainer.py --triggered-by manual --auto-deploy
 - **Kafka UI**: http://localhost:8080
 - **pgAdmin**: http://localhost:8081
 
-## 📊 Monitoring Metrics
+## Monitoring Metrics
 
 ### Inference Service (Port 8002)
 - `secom_predictions_made_total`: Total predictions
@@ -172,7 +173,7 @@ python pipeline/model_trainer.py --triggered-by manual --auto-deploy
 - `secom_models_deployed_total`: Models deployed
 - `secom_pending_retraining_triggers`: Waiting triggers
 
-## ⚙️ Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -210,7 +211,7 @@ CV_FOLDS=5
 N_JOBS=-1
 ```
 
-## 🔄 Continuous Learning Workflow
+## Continuous Learning Workflow
 
 ### 1. Performance Degradation Trigger
 ```
@@ -252,7 +253,7 @@ INSERT INTO secom.retraining_triggers (
 );
 ```
 
-## 🧪 Testing
+## Testing
 
 ### Run Integration Tests
 ```bash
@@ -281,7 +282,7 @@ SELECT * FROM secom.active_model_performance;
 SELECT * FROM secom.drift_detection_summary;
 ```
 
-## 📈 Performance Optimization
+## Performance Optimization
 
 ### Batch Size Tuning
 - **Producer**: Larger batches = higher throughput, higher latency
@@ -303,7 +304,7 @@ ON secom.predictions(prediction_timestamp DESC);
 - Implement model quantization for reduced size
 - Cache predictions for duplicate inputs (Redis)
 
-## 🔒 Production Considerations
+## Production Considerations
 
 ### Security
 - [ ] Enable Kafka authentication (SASL/SSL)
@@ -323,9 +324,9 @@ ON secom.predictions(prediction_timestamp DESC);
 - [ ] Exponential backoff for retries
 - [ ] Health checks and auto-restart
 - [ ] Backup and disaster recovery
-- [ ] Monitoring and alerting (PagerDuty, Slack)
+- Monitoring and alerting (PagerDuty, Slack)
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Issue: No predictions being made
 ```bash
@@ -357,32 +358,13 @@ docker-compose logs -f retrainer
 docker stats
 ```
 
-## 📚 Additional Resources
+## Additional Resources
 
 - [SECOM Dataset Documentation](secom/secom.names)
 - [Model Comparison Results](models/model_comparison.csv)
 - [Architecture Details](ARCHITECTURE.md)
-- [API Documentation](API.md) *(create if needed)*
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open Pull Request
-
-## 📝 License
+## License
 
 See [LICENSE](LICENSE) file for details.
 
-## 🎉 Acknowledgments
-
-- SECOM dataset from UCI Machine Learning Repository
-- Kafka for distributed messaging
-- Scikit-learn for ML algorithms
-- Prometheus & Grafana for monitoring
-
----
-
-**Built with ❤️ for production ML systems**

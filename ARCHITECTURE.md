@@ -1,6 +1,6 @@
-# SECOM ML Pipeline - Complete System Architecture
+# SECOM ML Pipeline - System Architecture
 
-## 🏗️ High-Level Architecture
+## High-Level Architecture
 
 ```
 ┌───────────────────────────────────────────────────────────────────────────┐
@@ -69,7 +69,7 @@
 └────────────────────┴─────────────────────────────────────────────────────┘
 ```
 
-## 📦 Component Details
+## Component Details
 
 ### 1. Data Generation Layer
 **Service**: `producer`  
@@ -276,9 +276,10 @@ secom_models_deployed_total
 
 ---
 
-## 🔄 Data Flow
+## Data Flow
 
-### Normal Operation Flow
+### Normal Operation
+
 ```
 1. Producer generates batch (100 samples)
    ↓
@@ -303,7 +304,8 @@ secom_models_deployed_total
 11. (Every 6h) Check for data drift
 ```
 
-### Continuous Learning Flow
+### Continuous Learning
+
 ```
 1. Inference detects performance degradation
    (Accuracy < 85% or F1 < 80%)
@@ -330,7 +332,8 @@ secom_models_deployed_total
 10. Enforce 6-hour cooldown period
 ```
 
-### Drift Detection Flow
+### Drift Detection
+
 ```
 1. Inference service (every 6 hours):
    ↓
@@ -353,7 +356,7 @@ secom_models_deployed_total
 
 ---
 
-## 🔐 Security Considerations
+## Security Considerations
 
 ### Current Implementation
 - Environment-based configuration
@@ -371,7 +374,7 @@ secom_models_deployed_total
 
 ---
 
-## 📈 Scalability
+## Scalability
 
 ### Horizontal Scaling
 - **Consumer**: Add replicas (Kafka consumer group handles partitioning)
@@ -392,7 +395,7 @@ secom_models_deployed_total
 
 ---
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 | Component | Technology | Version |
 |-----------|-----------|---------|
@@ -407,52 +410,45 @@ secom_models_deployed_total
 
 ---
 
-## 📊 Performance Characteristics
+## Performance Characteristics
 
-### Expected Behavior
-Performance will vary based on hardware, configuration, and data characteristics. Benchmark your specific deployment to establish baselines.
+Performance varies based on hardware and configuration. Use the monitoring tools to measure actual performance.
 
-### Monitoring
-The system provides metrics to measure actual performance:
-- Throughput rates via Prometheus counters
-- Latency percentiles via Prometheus histograms
-- Accuracy/F1 scores tracked in database
+Monitoring:
+- Throughput via Prometheus counters
+- Latency via Prometheus histograms
+- Accuracy/F1 scores in database
 
-### Storage
-- **Raw Data**: ~50KB per batch (100 samples)
-- **Predictions**: ~5KB per batch
-- **Models**: ~5-50MB per model
+Storage:
+- Raw Data: ~50KB per batch (100 samples)
+- Predictions: ~5KB per batch
+- Models: ~5-50MB per model
 
 ---
 
-## 🔄 Failure Modes & Recovery
+## Failure Modes & Recovery
 
 ### Producer Failure
-- **Impact**: No new data generated
-- **Recovery**: Auto-restart via Docker
-- **Mitigation**: Kafka retains last N hours of data
+- Impact: No new data generated
+- Recovery: Auto-restart via Docker
+- Mitigation: Kafka retains last N hours of data
 
 ### Consumer Failure
-- **Impact**: Data backlog in Kafka
-- **Recovery**: Consumer catches up on restart (offset tracking)
-- **Mitigation**: Dead Letter Queue for bad messages
+- Impact: Data backlog in Kafka
+- Recovery: Consumer catches up on restart (offset tracking)
+- Mitigation: Dead Letter Queue for bad messages
 
 ### Inference Failure
-- **Impact**: No predictions made
-- **Recovery**: Auto-restart, pending data queued
-- **Mitigation**: Multiple inference instances
+- Impact: No predictions made
+- Recovery: Auto-restart, pending data queued
+- Mitigation: Multiple inference instances
 
 ### Database Failure
-- **Impact**: Pipeline halts
-- **Recovery**: PostgreSQL auto-restart
-- **Mitigation**: Regular backups, connection retry logic
+- Impact: Pipeline halts
+- Recovery: PostgreSQL auto-restart
+- Mitigation: Regular backups, connection retry logic
 
 ### Model Performance Degradation
-- **Impact**: Poor predictions
-- **Recovery**: Automatic retraining triggered
-- **Mitigation**: Performance monitoring, drift detection
-
----
-
-**Last Updated**: December 2024  
-**Version**: 2.0 (Complete ML Pipeline with Continuous Learning)
+- Impact: Poor predictions
+- Recovery: Automatic retraining triggered
+- Mitigation: Performance monitoring, drift detection

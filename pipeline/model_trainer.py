@@ -1,8 +1,5 @@
 """
 Model Training Pipeline
-
-Automated model training with hyperparameter tuning, cross-validation,
-and model comparison for continuous learning.
 """
 
 import os
@@ -31,9 +28,6 @@ from database import DatabaseManager, ModelRegistryRepository, AuditLogRepositor
 
 load_dotenv()
 
-# ==========================================
-# CONFIGURATION
-# ==========================================
 CONFIG = {
     'training': {
         'test_size': float(os.getenv('TRAIN_TEST_SPLIT', 0.2)),

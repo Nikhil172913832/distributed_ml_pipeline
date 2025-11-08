@@ -1,6 +1,6 @@
-# Quick Reference Guide - SECOM ML Pipeline
+# Quick Reference - SECOM ML Pipeline
 
-## 🚀 Quick Commands
+## Quick Commands
 
 ### Setup & Start
 ```bash
@@ -72,7 +72,7 @@ docker exec kafka kafka-topics --create \
   --replication-factor 1
 ```
 
-## 📊 Dashboard URLs
+## Dashboard URLs
 
 | Service | URL | Default Credentials |
 |---------|-----|---------------------|
@@ -83,7 +83,7 @@ docker exec kafka kafka-topics --create \
 | Producer Metrics | http://localhost:8000/metrics | - |
 | Consumer Metrics | http://localhost:8001/metrics | - |
 
-## 🔧 Configuration Files
+## Configuration Files
 
 | File | Purpose |
 |------|---------|
@@ -92,7 +92,7 @@ docker exec kafka kafka-topics --create \
 | `monitoring/prometheus.yml` | Metrics scraping |
 | `database/init/01_init_schema.sql` | Database schema |
 
-## 📝 Common Tasks
+## Common Tasks
 
 ### Reset Everything
 ```bash
@@ -117,7 +117,7 @@ make format
 make lint
 ```
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Kafka Not Starting
 ```bash
@@ -160,7 +160,7 @@ tail -f logs/producer_*.log
 tail -f logs/consumer_*.log
 ```
 
-## 📈 Performance Tips
+## Performance Tips
 
 ### Increase Throughput
 ```env
@@ -184,7 +184,7 @@ CREATE INDEX idx_custom ON secom.raw_data(your_column);
 ANALYZE secom.raw_data;
 ```
 
-## 🔍 Useful SQL Queries
+## Useful SQL Queries
 
 ```sql
 -- Total samples processed
@@ -212,7 +212,7 @@ FROM secom.raw_data
 GROUP BY target;
 ```
 
-## 🎯 Key Metrics to Monitor
+## Key Metrics to Monitor
 
 ### Producer
 - Batch generation rate (batches/minute)
@@ -231,10 +231,9 @@ GROUP BY target;
 - Memory usage
 - Disk space
 
-## 📞 Getting Help
+## Getting Help
 
 1. Check logs: `make logs`
 2. Run health check: `make health`
 3. Review documentation: `README.md`, `ARCHITECTURE.md`
-4. Check GitHub issues
-5. Verify configuration in `.env`
+4. Verify configuration in `.env`

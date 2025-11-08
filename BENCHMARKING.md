@@ -1,38 +1,31 @@
-# 📊 Benchmarking Guide
+# Benchmarking Guide
 
-This guide explains how to measure the actual performance of your deployment. Performance characteristics vary based on hardware, configuration, and workload.
+Performance characteristics vary based on hardware, configuration, and workload.
 
-## ⚠️ Important Note
-
-Performance claims in documentation should be verified through benchmarking on your specific hardware and configuration. This guide provides tools and methods to establish your own baselines.
-
-## 🎯 What to Measure
+## What to Measure
 
 ### 1. Inference Latency
-- **Metric**: Time from receiving data to returning prediction
-- **Target**: As measured by your requirements
-- **Tools**: Prometheus histograms, custom timing scripts
+- Metric: Time from receiving data to returning prediction
+- Tools: Prometheus histograms, custom timing scripts
 
 ### 2. Throughput
-- **Metric**: Predictions per second
-- **Target**: Depends on your workload
-- **Tools**: Prometheus counters, load testing tools
+- Metric: Predictions per second
+- Tools: Prometheus counters, load testing tools
 
 ### 3. Model Accuracy
-- **Metric**: Accuracy, Precision, Recall, F1
-- **Target**: Domain-specific (configured as 85% accuracy, 80% F1)
-- **Tools**: Database queries, Grafana dashboards
+- Metric: Accuracy, Precision, Recall, F1
+- Target: Configured as 85% accuracy, 80% F1
+- Tools: Database queries, Grafana dashboards
 
 ### 4. End-to-End Latency
-- **Metric**: Data generation → prediction storage
-- **Target**: Depends on use case
-- **Tools**: Distributed tracing, timestamps
+- Metric: Data generation to prediction storage
+- Tools: Distributed tracing, timestamps
 
-## 🛠️ Benchmarking Tools
+## Benchmarking Tools
 
-### Option 1: Prometheus Metrics (Built-in)
+### Option 1: Prometheus Metrics
 
-The system already exposes metrics. Query them:
+Query metrics:
 
 ```bash
 # Access Prometheus
@@ -84,8 +77,6 @@ WHERE created_at > NOW() - INTERVAL '1 hour';
 
 ### Option 3: Load Testing with Python
 
-Create a simple load test script:
-
 ```python
 # benchmark_inference.py
 import time
@@ -94,11 +85,6 @@ from concurrent.futures import ThreadPoolExecutor
 from pipeline.database import Database, PreprocessedDataRepository
 
 def benchmark_inference_throughput(duration_seconds=60, num_threads=4):
-    """
-    Measure how many predictions are made over a time period.
-    
-    Note: This measures the OVERALL system throughput, not just inference.
-    """
     db = Database()
     pred_repo = PreprocessedDataRepository(db.get_connection())
     
@@ -122,15 +108,10 @@ def benchmark_inference_throughput(duration_seconds=60, num_threads=4):
 
 if __name__ == "__main__":
     print("Benchmarking inference throughput...")
-    print("Make sure producer, consumer, and inference are running!")
-    print()
-    
     throughput = benchmark_inference_throughput(duration_seconds=60)
 ```
 
-### Option 4: HTTP Load Testing (if you add REST API)
-
-If you expose an HTTP endpoint for inference:
+### Option 4: HTTP Load Testing
 
 ```bash
 # Using Apache Bench
@@ -142,8 +123,6 @@ hey -n 1000 -c 10 -m POST -D data.json http://localhost:8002/predict
 # Using k6
 k6 run load-test.js
 ```
-
-Example k6 script:
 
 ```javascript
 // load-test.js
@@ -177,11 +156,11 @@ export default function () {
 }
 ```
 
-## 📈 Establishing Baselines
+## Establishing Baselines
 
 ### Step 1: Measure Current Performance
 
-Run your benchmarks and record results:
+Run benchmarks and record results.
 
 ```bash
 # Create a results file
@@ -231,8 +210,6 @@ done
 
 ### Step 4: Analyze Results
 
-Calculate statistics:
-
 ```python
 import numpy as np
 
@@ -245,21 +222,18 @@ print(f"Max: {np.max(results):.2f}")
 print(f"95% CI: {np.percentile(results, [2.5, 97.5])}")
 ```
 
-## 🎯 Performance Tuning
-
-Once you have baselines, tune for better performance:
+## Performance Tuning
 
 ### Inference Optimization
 
 ```bash
-# 1. Increase batch size (trades latency for throughput)
+# Increase batch size
 export INFERENCE_BATCH_SIZE=1000
 
-# 2. Reduce monitoring frequency
-export PERFORMANCE_CHECK_INTERVAL=7200  # 2 hours instead of 1
+# Reduce monitoring frequency
+export PERFORMANCE_CHECK_INTERVAL=7200
 
-# 3. Use model quantization
-# (Implement in model_trainer.py if needed)
+# Use model quantization (implement in model_trainer.py if needed)
 ```
 
 ### Database Optimization
@@ -288,7 +262,7 @@ docker exec kafka kafka-topics --alter \
 docker-compose up --scale consumer=3
 ```
 
-## 📊 Monitoring Performance Over Time
+## Monitoring Performance Over Time
 
 ### Grafana Dashboard Queries
 
@@ -305,9 +279,7 @@ rate(secom_predictions_made_total[1h])
 secom_model_accuracy
 ```
 
-### Alerts
-
-Set up alerts for performance degradation:
+### Prometheus Alerts
 
 ```yaml
 # prometheus/alerts.yml
@@ -327,11 +299,9 @@ groups:
           summary: "Prediction throughput is low (<10/sec)"
 ```
 
-## 🔬 Reproducible Benchmarks
+## Reproducible Benchmarks
 
-To make benchmarks reproducible:
-
-### 1. Document Everything
+### 1. Document Configuration and Results
 
 ```markdown
 ## Benchmark Report
@@ -406,22 +376,17 @@ mv results.txt "benchmarks/results_$(date +%Y%m%d_%H%M%S).txt"
 echo "Benchmarks complete!"
 ```
 
-## 🎓 Best Practices
+## Best Practices
 
-1. **Always benchmark on production-like hardware**: Dev machine results don't predict production performance
-2. **Run multiple iterations**: Single runs can be misleading due to variance
-3. **Measure under load**: Performance degrades under realistic workloads
-4. **Document everything**: Configuration, hardware, git commit, date
-5. **Automate where possible**: Regular benchmarks catch performance regressions
-6. **Set realistic SLAs**: Based on actual measurements, not aspirational goals
+1. Always benchmark on production-like hardware
+2. Run multiple iterations for reliability
+3. Measure under load
+4. Document configuration, hardware, and results
+5. Automate where possible
+6. Set realistic SLAs based on measurements
 
-## 📚 Further Reading
+## Further Reading
 
 - [Prometheus Query Examples](https://prometheus.io/docs/prometheus/latest/querying/examples/)
 - [Grafana Dashboard Best Practices](https://grafana.com/docs/grafana/latest/dashboards/build-dashboards/best-practices/)
-- [Load Testing Best Practices](https://k6.io/docs/test-authoring/test-builder/)
 - [PostgreSQL Performance Tuning](https://wiki.postgresql.org/wiki/Performance_Optimization)
-
----
-
-**Remember**: Performance numbers without reproducible methodology are just marketing. Always measure, document, and validate on your specific deployment.

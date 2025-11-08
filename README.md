@@ -1,15 +1,15 @@
-# 🚀 Distributed ML Pipeline with Continuous Learning
+# Distributed ML Pipeline with Continuous Learning
 
-**Production-ready MLOps system** for semiconductor manufacturing quality control with real-time inference, automated retraining, and drift detection.
+MLOps system for semiconductor manufacturing quality control with real-time inference, automated retraining, and drift detection.
 
-## Key Features
+## Features
 
-- **Real-time Inference**: Predictions with confidence scoring
-- **Continuous Learning**: Auto-retraining when accuracy < 85% or drift detected
-- **Drift Detection**: Statistical monitoring (KS-test) every 6 hours
-- **Model Registry**: Complete version control with metadata
-- **Observability**: Prometheus + Grafana dashboards
-- **Production-Ready**: Full Docker orchestration
+- Real-time inference with confidence scoring
+- Automated retraining when accuracy < 85% or drift detected
+- Statistical drift monitoring (KS-test) every 6 hours
+- Model version control with metadata
+- Prometheus and Grafana monitoring
+- Docker orchestration
 
 ## Architecture
 
@@ -19,11 +19,11 @@ Data → Kafka → Preprocessing → PostgreSQL → Inference → Continuous Lea
     Monitoring ←──────────────────────────────────────────────┘
 ```
 
-**Services**: Producer | Consumer | Inference | Retrainer | Kafka | PostgreSQL | Redis | Prometheus | Grafana
+Services: Producer | Consumer | Inference | Retrainer | Kafka | PostgreSQL | Redis | Prometheus | Grafana
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed diagrams.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for details.
 
-## �️ Tech Stack
+## Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
@@ -46,7 +46,7 @@ make start
 open http://localhost:3000  # Grafana (admin/admin)
 ```
 
-**Verify deployment:**
+Verify deployment:
 ```bash
 make status      # Service health
 make metrics     # Prometheus metrics
@@ -74,25 +74,20 @@ make logs-inference  # Inference logs
 make trigger-retrain
 ```
 
-**Automated triggers**: Performance < 85% accuracy/80% F1, or drift detected (p-value < 0.05)
-
-
+Automated triggers: Performance < 85% accuracy/80% F1, or drift detected (p-value < 0.05)
 
 ## Documentation
 
-- **[ARCHITECTURE.md](ARCHITECTURE.md)**: Complete system architecture
-- **[ML_PIPELINE_GUIDE.md](ML_PIPELINE_GUIDE.md)**: ML operations deep dive
-- **[DEPLOYMENT.md](DEPLOYMENT.md)**: Quick deployment guide
-- **[BENCHMARKING.md](BENCHMARKING.md)**: Performance measurement guide
-- **[benchmarks/](benchmarks/)**: Reproducible benchmark scripts
-- **[PROJECT_SUMMARY.md](PROJECT_SUMMARY.md)**: Executive overview
+- [ARCHITECTURE.md](ARCHITECTURE.md): System architecture
+- [ML_PIPELINE_GUIDE.md](ML_PIPELINE_GUIDE.md): ML operations
+- [DEPLOYMENT.md](DEPLOYMENT.md): Deployment guide
+- [BENCHMARKING.md](BENCHMARKING.md): Performance measurement
+- [benchmarks/](benchmarks/): Benchmark scripts
 
 ## Performance Benchmarking
 
-Measure actual performance on your hardware:
-
 ```bash
-# Run k6 load test (recommended)
+# Run k6 load test
 make bench
 
 # Run Python benchmark
@@ -102,16 +97,9 @@ make bench-python
 make bench-all
 ```
 
-**Example output:**
-```
-✓ Prediction rate: 24.5 predictions/sec
-✓ Inference latency (p95): 67ms
-✓ Model accuracy: 87.3%
-```
+Results saved to `benchmarks/results/`. See [benchmarks/README.md](benchmarks/README.md) and [BENCHMARKING.md](BENCHMARKING.md) for details.
 
-Results saved to `benchmarks/results/` with timestamps. See **[benchmarks/README.md](benchmarks/README.md)** for detailed usage and **[BENCHMARKING.md](BENCHMARKING.md)** for comprehensive measurement guide.
-
-**Note:** Performance varies by hardware/configuration. Always benchmark your deployment!
+Note: Performance varies by hardware and configuration.
 
 ## Testing
 
@@ -129,7 +117,7 @@ docker logs <service> # Specific service logs
 make clean           # Reset everything
 ```
 
-**Common issues**: See [DEPLOYMENT.md](DEPLOYMENT.md#troubleshooting)
+Common issues: See [DEPLOYMENT.md](DEPLOYMENT.md#troubleshooting)
 
 ## Monitoring
 
@@ -155,20 +143,15 @@ secom_drift_detected_total
 secom_retraining_triggered_total
 ```
 
+### Grafana Dashboards
 
+Access: `http://localhost:3000` (admin/admin)
 
+- ML Performance dashboard
+- Pipeline Health dashboard
 
-### 7. Monitoring Stack
-- **Prometheus**: Scrapes metrics from all services (8000-8003)
-- **Grafana**: ML Performance + Pipeline Health dashboards
-- **Kafka UI**: Topic monitoring and management
-- **pgAdmin**: Database administration
+### Logs
 
-
-
-```
-
-### View Logs
 ```bash
 # All services
 make logs
@@ -184,14 +167,11 @@ tail -f logs/consumer_*.log
 # Docker logs
 docker-compose logs -f [service_name]
 ```
-### Reset Everything
-```bash
-# Stop and remove all data
-make clean
 
-# Restart fresh
-./setup.sh
+## Reset
+
+```bash
+make clean  # Stop and remove all data
+./setup.sh  # Restart fresh
 make up
 ```
-
-**Built with for robust ML pipelines in production**

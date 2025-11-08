@@ -1,7 +1,5 @@
 """
 Kafka Consumer with Preprocessing Pipeline
-
-Consumes raw SECOM data from Kafka, applies preprocessing, and stores to PostgreSQL.
 """
 
 import os
@@ -29,9 +27,6 @@ from database import (
 
 load_dotenv()
 
-# ==========================================
-# CONFIGURATION
-# ==========================================
 CONFIG = {
     'kafka': {
         'bootstrap_servers': os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9092').split(','),

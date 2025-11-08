@@ -1,8 +1,5 @@
 """
 Kafka Producer for SECOM Synthetic Data Generation
-
-This module loads the trained SDV model and generates synthetic SECOM data,
-publishing it to Kafka for downstream processing.
 """
 
 import os
@@ -26,9 +23,6 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# ==========================================
-# CONFIGURATION
-# ==========================================
 CONFIG = {
     'kafka': {
         'bootstrap_servers': os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9092').split(','),

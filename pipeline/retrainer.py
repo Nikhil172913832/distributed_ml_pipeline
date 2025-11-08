@@ -1,8 +1,5 @@
 """
 Continuous Learning Retrainer Service
-
-Monitors retraining triggers and automatically initiates model retraining
-when performance degradation or data drift is detected.
 """
 
 import os
@@ -26,9 +23,6 @@ from model_trainer import TrainingOrchestrator, CONFIG as TRAINING_CONFIG
 
 load_dotenv()
 
-# ==========================================
-# CONFIGURATION
-# ==========================================
 CONFIG = {
     'retrainer': {
         'check_interval_seconds': int(os.getenv('RETRAINER_CHECK_INTERVAL', 300)),  # 5 minutes

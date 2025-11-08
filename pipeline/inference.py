@@ -1,8 +1,5 @@
 """
 Model Inference Service
-
-Consumes preprocessed data, generates predictions, monitors performance,
-and detects data drift for continuous learning.
 """
 
 import os
@@ -31,9 +28,6 @@ from database import (
 
 load_dotenv()
 
-# ==========================================
-# CONFIGURATION
-# ==========================================
 CONFIG = {
     'inference': {
         'batch_size': int(os.getenv('INFERENCE_BATCH_SIZE', 100)),
