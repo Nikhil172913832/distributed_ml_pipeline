@@ -1,0 +1,64 @@
+# Example Configuration File for Distributed ML Pipeline
+
+# Model Configuration
+model:
+  model_name: "secom_classifier"
+  version: "1.0.0"
+  architecture: "logistic_regression"
+  num_classes: 2
+  pretrained: false
+  hyperparameters:
+    penalty: "l2"
+    C: 1.0
+    solver: "lbfgs"
+    max_iter: 1000
+
+# Distributed Training Configuration
+distributed:
+  num_workers: 1
+  backend: "gloo"  # Use 'nccl' for GPU, 'gloo' for CPU
+  init_method: "env://"
+  world_size: 1
+  rank: 0
+  master_addr: "localhost"
+  master_port: "29500"
+  find_unused_parameters: false
+
+# Data Pipeline Configuration
+data:
+  dataset_path: "data/"
+  batch_size: 32
+  num_workers: 4
+  pin_memory: true
+  prefetch_factor: 2
+  train_split: 0.8
+  val_split: 0.1
+  test_split: 0.1
+  shuffle: true
+  drop_last: true
+
+# Training Configuration
+training:
+  epochs: 100
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  momentum: 0.9
+  use_amp: false  # Mixed precision training
+  gradient_accumulation_steps: 1
+  max_grad_norm: 1.0
+  warmup_epochs: 5
+  scheduler_type: "cosine"  # Options: cosine, linear, step, exponential
+  optimizer: "adamw"  # Options: adam, adamw, sgd
+  early_stopping_patience: 10
+
+# Monitoring and Logging Configuration
+monitoring:
+  enable_mlflow: false
+  enable_prometheus: false
+  enable_wandb: false
+  log_level: "INFO"
+  log_interval: 10
+  checkpoint_dir: "checkpoints"
+  log_dir: "logs"
+  save_best_only: true
+  metric_for_best: "val_loss"
