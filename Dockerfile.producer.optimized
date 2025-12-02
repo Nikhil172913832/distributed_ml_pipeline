@@ -1,0 +1,56 @@
+# Enhanced Dockerfile with multi-stage build
+# Stage 1: Build dependencies
+FROM python:3.11-slim AS builder
+
+WORKDIR /build
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
+    make \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy and install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir --user -r requirements.txt
+
+
+# Stage 2: Runtime
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install only runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy installed packages from builder
+COPY --from=builder /root/.local /root/.local
+
+# Copy application code
+COPY pipeline/ ./pipeline/
+COPY config/ ./config/
+COPY monitoring/ ./monitoring/
+COPY models/ ./models/
+
+# Create necessary directories
+RUN mkdir -p logs data checkpoints
+
+# Set Python path
+ENV PYTHONPATH=/app
+ENV PATH=/root/.local/bin:$PATH
+
+# Add non-root user for security
+RUN useradd -m -u 1000 mluser && \
+    chown -R mluser:mluser /app
+USER mluser
+
+WORKDIR /app/pipeline
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python health_check.py || exit 1
+
+CMD ["python", "producer.py"]

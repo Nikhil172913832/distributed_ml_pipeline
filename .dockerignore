@@ -1,0 +1,28 @@
+# Build production images
+docker-compose-prod.yml
+
+# Ignore development files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Ignore local data and logs
+data/
+logs/
+checkpoints/
+*.log
+
+# Ignore IDE settings
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ignore env files with secrets
+.env
+.env.local

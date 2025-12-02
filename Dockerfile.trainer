@@ -1,0 +1,71 @@
+# Enhanced Dockerfile for GPU training with multi-stage build
+# Stage 1: Build dependencies
+FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04 AS builder
+
+WORKDIR /build
+
+# Install Python and build tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.10 \
+    python3-pip \
+    python3-dev \
+    gcc \
+    g++ \
+    make \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Upgrade pip
+RUN python3 -m pip install --upgrade pip setuptools wheel
+
+# Copy and install dependencies
+COPY requirements.txt .
+RUN pip3 install --no-cache-dir --user -r requirements.txt
+
+
+# Stage 2: Runtime
+FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
+
+WORKDIR /app
+
+# Install Python runtime
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.10 \
+    python3-pip \
+    libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy installed packages from builder
+COPY --from=builder /root/.local /root/.local
+
+# Copy application code
+COPY pipeline/ ./pipeline/
+COPY config/ ./config/
+COPY monitoring/ ./monitoring/
+COPY models/ ./models/
+COPY data/ ./data/
+
+# Create necessary directories
+RUN mkdir -p logs checkpoints
+
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV PATH=/root/.local/bin:$PATH
+ENV PYTHONUNBUFFERED=1
+ENV NCCL_DEBUG=INFO
+ENV CUDA_VISIBLE_DEVICES=0
+
+# Add non-root user
+RUN useradd -m -u 1000 mluser && \
+    chown -R mluser:mluser /app
+USER mluser
+
+WORKDIR /app
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD python3 -c "import torch; print(torch.cuda.is_available())" || exit 1
+
+# Default command for training
+ENTRYPOINT ["python3"]
+CMD ["pipeline/model_trainer.py"]
