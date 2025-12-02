@@ -5,6 +5,7 @@ import yaml
 from pathlib import Path
 import logging
 import os
+import hashlib
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -225,7 +226,19 @@ class ConfigManager:
         try:
             with open(output_path, 'w') as f:
                 yaml.dump(config_dict, f, default_flow_style=False, sort_keys=False)
-            logger.info(f"Configuration saved to {output_path}")
+            # Compute and save a simple config hash for versioning
+            try:
+                serialized = yaml.dump(config_dict, sort_keys=True).encode('utf-8')
+                config_hash = hashlib.sha256(serialized).hexdigest()
+                meta = {'config_hash': config_hash}
+                # Save a small meta file alongside config
+                with open(f"{output_path}.meta.json", 'w') as mf:
+                    import json
+
+                    json.dump(meta, mf)
+                logger.info(f"Configuration saved to {output_path} (hash={config_hash})")
+            except Exception:
+                logger.info(f"Configuration saved to {output_path}")
         except Exception as e:
             logger.error(f"Error saving config to {output_path}: {e}")
             raise
