@@ -1,239 +1,332 @@
-# Quick Reference - SECOM ML Pipeline
+# Quick Start Guide: Updated for New Features
 
-## Quick Commands
+This guide has been updated to reflect the new configuration system and features.
 
-### Setup & Start
+## Prerequisites
+
+- Docker and Docker Compose
+- Python 3.11+
+- Git
+
+## Setup (5 minutes)
+
+### 1. Clone and Install
+
 ```bash
-# Initial setup
-./setup.sh
+git clone <repository-url>
+cd distributed_ml_pipeline
 
-# Or using Make
-make setup
+# Install dependencies
+pip install -r requirements.txt
+pip install -r requirements-dev.txt  # For development
 
-# Start services
+# Install pre-commit hooks (optional but recommended)
+pre-commit install
+```
+
+### 2. Configure Environment
+
+```bash
+# Copy example environment file
+cp .env.example .env
+
+# Edit .env with your configuration (optional, defaults work for local development)
+nano .env
+```
+
+### 3. Start Services
+
+```bash
+# Start infrastructure services
+docker compose up -d
+
+# Wait for services to be ready (~30 seconds)
+docker compose ps
+
+# Initialize database schema (if not auto-initialized)
+docker exec -i postgres psql -U ml_user -d secom_pipeline -f /docker-entrypoint-initdb.d/01_schema.sql
+```
+
+### 4. Verify Setup
+
+```bash
+# Check service health
+make health
+
+# View service status
+make status
+```
+
+## Running the Pipeline
+
+### Option 1: Using Make Commands (Recommended)
+
+```bash
+# Start all pipeline services
 make start
 
-# Check health
-make health
-```
-
-### Run Pipeline
-```bash
-# Terminal 1 - Producer
-make producer
-
-# Terminal 2 - Consumer  
-make consumer
-```
-
-### Monitoring
-```bash
-# View all logs
+# Monitor logs
 make logs
 
-# Producer logs only
-make logs-producer
+# Check metrics
+make metrics
 
-# Consumer logs only
-make logs-consumer
-
-# Health check
-python pipeline/health_check.py
+# View model performance
+make performance
 ```
 
-### Database Operations
+### Option 2: Manual Service Start
+
 ```bash
-# Connect to PostgreSQL
-make db-shell
+# Terminal 1: Producer
+python pipeline/producer.py
 
-# View recent batches
-psql> SELECT * FROM secom.recent_batches_summary LIMIT 5;
+# Terminal 2: Consumer
+python pipeline/consumer.py
 
-# Check data quality
-psql> SELECT * FROM secom.data_quality_summary;
+# Terminal 3: Inference
+python pipeline/inference.py
 
-# View audit logs
-psql> SELECT * FROM secom.pipeline_audit_log ORDER BY created_at DESC LIMIT 10;
+# Terminal 4: Retrainer
+python pipeline/retrainer.py
 ```
 
-### Kafka Operations
+## New Features
+
+### MLflow Experiment Tracking
+
 ```bash
-# List topics
-make kafka-topics
+# Start MLflow UI
+mlflow ui --backend-store-uri file:./mlruns --port 5000
 
-# Consume messages (console)
-make kafka-console
-
-# Create new topic
-docker exec kafka kafka-topics --create \
-  --bootstrap-server localhost:9092 \
-  --topic my-topic \
-  --partitions 3 \
-  --replication-factor 1
+# Access at http://localhost:5000
 ```
 
-## Dashboard URLs
+### Feature Store (Redis)
 
-| Service | URL | Default Credentials |
-|---------|-----|---------------------|
-| Kafka UI | http://localhost:8080 | - |
-| pgAdmin | http://localhost:8081 | admin@secom.local / admin |
-| Prometheus | http://localhost:9090 | - |
-| Grafana | http://localhost:3000 | admin / admin |
-| Producer Metrics | http://localhost:8000/metrics | - |
-| Consumer Metrics | http://localhost:8001/metrics | - |
+The feature store is automatically enabled when Redis is running. Features are cached with 24-hour TTL.
 
-## Configuration Files
+### Data Validation
 
-| File | Purpose |
-|------|---------|
-| `.env` | Environment variables |
-| `docker-compose.yml` | Service orchestration |
-| `monitoring/prometheus.yml` | Metrics scraping |
-| `database/init/01_init_schema.sql` | Database schema |
+Data validation runs automatically in the consumer and inference services. Check logs for validation results.
 
-## Common Tasks
+## Development Workflow
 
-### Reset Everything
+### Running Tests
+
 ```bash
-make clean
-make setup
+# Run all tests with coverage
+pytest tests/ -v --cov=pipeline --cov-report=html
+
+# Run specific test file
+pytest tests/test_ml_pipeline.py -v
+
+# View coverage report
+open htmlcov/index.html
 ```
 
-### Update Dependencies
+### Code Quality
+
 ```bash
-source .venv/bin/activate
-pip install -r requirements.txt
+# Format code
+black pipeline/ config/ monitoring/ tests/
+
+# Lint code
+ruff check pipeline/ config/ monitoring/
+
+# Type check
+mypy pipeline/ config/ monitoring/
 ```
 
-### Run Tests
+### Pre-commit Hooks
+
 ```bash
-make test
+# Install hooks
+pre-commit install
+
+# Run manually
+pre-commit run --all-files
 ```
 
-### Format Code
+## Monitoring
+
+### Prometheus Metrics
+
+Access Prometheus at `http://localhost:9090`
+
+**Key Queries:**
+```promql
+# Prediction throughput
+rate(secom_predictions_made_total[5m])
+
+# Model accuracy
+secom_model_accuracy
+
+# Inference latency (p95)
+histogram_quantile(0.95, secom_inference_duration_seconds_bucket)
+```
+
+### Grafana Dashboards
+
+Access Grafana at `http://localhost:3000` (admin/admin)
+
+- ML Performance Dashboard
+- Pipeline Health Dashboard
+
+### MLflow Tracking
+
+Access MLflow at `http://localhost:5000`
+
+- Compare experiment runs
+- View model metrics and parameters
+- Download model artifacts
+
+## Training Models
+
+### Manual Training
+
 ```bash
-make format
-make lint
+# Train with default settings
+make train
+
+# Train with custom parameters
+python pipeline/model_trainer.py --data-days 14 --auto-deploy
+```
+
+### Trigger Retraining
+
+```bash
+# Manual trigger
+make trigger-retrain
+
+# Check retraining status
+make logs-retrainer
+```
+
+## Configuration
+
+### Using New Configuration System
+
+```python
+from config.settings import get_settings
+
+# Get all settings
+settings = get_settings()
+
+# Access specific settings
+kafka_servers = settings.kafka.bootstrap_servers
+db_connection = settings.database.connection_string
+
+# Override for testing
+from config.settings import override_settings
+test_settings = override_settings(
+    kafka__bootstrap_servers="test:9092"
+)
+```
+
+### Environment Variables
+
+All configuration can be set via environment variables:
+
+```bash
+# Kafka
+export KAFKA_BOOTSTRAP_SERVERS=localhost:9092
+export KAFKA_RAW_TOPIC=secom-raw-data
+
+# Database
+export POSTGRES_HOST=localhost
+export POSTGRES_PORT=5432
+export POSTGRES_DB=secom_pipeline
+
+# Inference
+export INFERENCE_BATCH_SIZE=100
+export INFERENCE_CONFIDENCE_THRESHOLD=0.7
+
+# Monitoring
+export MONITORING_ENABLE_MLFLOW=true
+export MONITORING_MLFLOW_TRACKING_URI=http://localhost:5000
 ```
 
 ## Troubleshooting
 
-### Kafka Not Starting
+### Services Not Starting
+
 ```bash
-# Check logs
-docker logs kafka
+# Check Docker logs
+docker compose logs
 
-# Restart Kafka
-docker restart kafka
+# Restart specific service
+docker compose restart <service-name>
 
-# Recreate cluster ID
-docker-compose down -v
+# Clean restart
+make clean
 make start
 ```
 
-### Database Connection Error
+### Database Connection Issues
+
 ```bash
-# Check PostgreSQL status
-docker exec postgres pg_isready
+# Check PostgreSQL is running
+docker exec postgres pg_isready -U ml_user
 
-# View logs
-docker logs postgres
-
-# Restart database
-docker restart postgres
+# Reinitialize database
+docker compose down -v
+docker compose up -d postgres
+# Wait 10 seconds
+docker exec -i postgres psql -U ml_user -d secom_pipeline -f /docker-entrypoint-initdb.d/01_schema.sql
 ```
 
-### Producer/Consumer Not Working
+### Kafka Issues
+
 ```bash
-# Check if models exist
-ls -lh models/
+# List topics
+make kafka-topics
 
-# Train SDV model
-python data_generator/secom_raw_trainer.py
+# Check Kafka logs
+docker logs kafka
 
-# Check environment variables
-cat .env
-
-# View detailed logs
-tail -f logs/producer_*.log
-tail -f logs/consumer_*.log
+# Recreate topics
+docker exec kafka kafka-topics --delete --topic secom-raw-data --bootstrap-server localhost:9092
+./setup.sh  # Recreates topics
 ```
 
-## Performance Tips
+## Next Steps
 
-### Increase Throughput
-```env
-# In .env
-BATCH_SIZE=500                    # Larger batches
-GENERATION_INTERVAL_SECONDS=1     # Faster generation
+1. **Explore MLflow:** View experiment tracking at http://localhost:5000
+2. **Check Metrics:** View Grafana dashboards at http://localhost:3000
+3. **Run Tests:** Execute `pytest tests/ -v` to verify everything works
+4. **Read Documentation:** Check `docs/` directory for detailed guides
+
+## Useful Commands
+
+```bash
+# Service management
+make start          # Start all services
+make stop           # Stop all services
+make restart        # Restart all services
+make clean          # Clean and remove volumes
+
+# Monitoring
+make status         # Service status
+make health         # Health checks
+make metrics        # Prometheus metrics
+make performance    # Model performance
+
+# Development
+make test           # Run tests
+make lint           # Run linter
+make format         # Format code
+
+# Logs
+make logs           # All logs
+make logs-inference # Inference logs
+make logs-retrainer # Retrainer logs
 ```
 
-### Reduce Latency
-```env
-BATCH_SIZE=10                     # Smaller batches
-GENERATION_INTERVAL_SECONDS=10    # Slower, steady flow
-```
+## Additional Resources
 
-### Database Optimization
-```sql
--- Create indexes for your queries
-CREATE INDEX idx_custom ON secom.raw_data(your_column);
-
--- Analyze tables
-ANALYZE secom.raw_data;
-```
-
-## Useful SQL Queries
-
-```sql
--- Total samples processed
-SELECT COUNT(*) FROM secom.raw_data;
-
--- Batches by status
-SELECT processing_status, COUNT(*) 
-FROM secom.batch_metadata 
-GROUP BY processing_status;
-
--- Recent errors
-SELECT * FROM secom.dead_letter_queue 
-WHERE status = 'failed' 
-ORDER BY created_at DESC 
-LIMIT 10;
-
--- Average processing time
-SELECT AVG(total_processing_duration_ms) as avg_ms
-FROM secom.batch_metadata
-WHERE processing_status = 'completed';
-
--- Class distribution
-SELECT target, COUNT(*) as count
-FROM secom.raw_data
-GROUP BY target;
-```
-
-## Key Metrics to Monitor
-
-### Producer
-- Batch generation rate (batches/minute)
-- Kafka send success rate
-- Generation duration (should be <1s)
-
-### Consumer
-- Message processing rate
-- Preprocessing duration
-- Database insert duration
-- Error rate (<1%)
-
-### System
-- Kafka lag (should be near 0)
-- Database connection pool usage
-- Memory usage
-- Disk space
-
-## Getting Help
-
-1. Check logs: `make logs`
-2. Run health check: `make health`
-3. Review documentation: `README.md`, `ARCHITECTURE.md`
-4. Verify configuration in `.env`
+- [Architecture Documentation](ARCHITECTURE.md)
+- [ML Pipeline Guide](ML_PIPELINE_GUIDE.md)
+- [Model Card](docs/MODEL_CARD.md)
+- [Implementation Summary](docs/IMPLEMENTATION_SUMMARY.md)
+- [Architecture Decision Records](docs/adr/)
