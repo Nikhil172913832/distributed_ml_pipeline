@@ -149,22 +149,24 @@ services:
       timeout: 5s
       retries: 5
 
-  # Producer service
   producer:
     build:
       context: .
-      dockerfile: Dockerfile.producer
+      dockerfile: Dockerfile.services
     container_name: secom-producer
+    command: python pipeline/producer.py
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
       KAFKA_RAW_TOPIC: secom-raw-data
       BATCH_SIZE: 100
       GENERATION_INTERVAL_SECONDS: 5
-      SDV_MODEL_PATH: /app/models/sdv_secom_raw.joblib
+      SECOM_DATA_PATH: /data/secom.data
+      SECOM_LABELS_PATH: /data/secom_labels.data
+      ENABLE_DRIFT: "true"
       PROMETHEUS_PORT: 8000
       LOG_LEVEL: INFO
     volumes:
-      - ./models:/app/models
+      - ./data:/data
       - ./logs:/app/logs
     networks:
       - ml_pipeline
@@ -173,11 +175,11 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # Consumer/Preprocessor service
   consumer:
     build:
       context: .
-      dockerfile: Dockerfile.consumer
+      dockerfile: Dockerfile.services
+    command: python pipeline/consumer.py
     container_name: secom-consumer
     environment:
       KAFKA_BOOTSTRAP_SERVERS: kafka:29092
@@ -203,11 +205,11 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # Inference service
   inference:
     build:
       context: .
-      dockerfile: Dockerfile.inference
+      dockerfile: Dockerfile.services
+    command: python pipeline/inference.py
     container_name: secom-inference
     environment:
       POSTGRES_HOST: postgres
@@ -238,11 +240,11 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # Retrainer service
   retrainer:
     build:
       context: .
-      dockerfile: Dockerfile.retrainer
+      dockerfile: Dockerfile.services
+    command: python pipeline/retrainer.py
     container_name: secom-retrainer
     environment:
       POSTGRES_HOST: postgres
@@ -272,11 +274,12 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
-  # API service for predictions
+  # API service
   api:
     build:
       context: .
-      dockerfile: Dockerfile.api
+      dockerfile: Dockerfile.services
+    command: python pipeline/api_service.py
     container_name: secom-api
     ports:
       - "8004:8004"
@@ -286,9 +289,6 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-secom_pipeline}
       POSTGRES_USER: ${POSTGRES_USER:-ml_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ml_password}
-      MODELS_DIR: /app/models
-      MODEL_CACHE_ENABLED: "true"
-      API_HOST: 0.0.0.0
       API_PORT: 8004
       LOG_LEVEL: INFO
     volumes:

@@ -7,19 +7,21 @@ import sys
 import time
 import subprocess
 from datetime import datetime
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 from uuid import UUID
 import signal
 
 from loguru import logger
 from prometheus_client import Counter, Gauge, start_http_server
 from dotenv import load_dotenv
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 from database import (
     DatabaseManager, RetrainingTriggerRepository,
     ModelRegistryRepository, AuditLogRepository
 )
 from model_trainer import TrainingOrchestrator, CONFIG as TRAINING_CONFIG
+from model_rollback import ModelRollbackManager
 
 load_dotenv()
 
@@ -97,10 +99,12 @@ class RetrainerOrchestrator:
         
         # Training orchestrator
         self.training_orchestrator = TrainingOrchestrator(TRAINING_CONFIG)
+        self.rollback_manager = ModelRollbackManager(self.db_manager)
         
         # State tracking
         self.active_jobs = 0
         self.last_retraining_time = None
+        self.rollback_checks = {}
         
         # Setup signal handlers
         signal.signal(signal.SIGINT, self._signal_handler)
@@ -217,6 +221,18 @@ class RetrainerOrchestrator:
                 duration_ms=duration_ms
             )
             
+            if self.config['retrainer']['auto_deploy']:
+                previous_model = self.model_registry_repo.get_active_model()
+                if previous_model and str(previous_model[0]) != str(result['model_id']):
+                    self.rollback_manager.start_monitoring(
+                        result['model_id'],
+                        UUID(str(previous_model[0]))
+                    )
+                    self.rollback_checks[str(result['model_id'])] = {
+                        'previous_model_id': str(previous_model[0]),
+                        'deployed_at': datetime.utcnow()
+                    }
+            
             # Update last retraining time
             self.last_retraining_time = datetime.utcnow()
             
@@ -251,9 +267,25 @@ class RetrainerOrchestrator:
             return False
             
         finally:
-            # Decrement active jobs
             self.active_jobs -= 1
             metrics['active_training_jobs'].set(self.active_jobs)
+    
+    def _check_rollbacks(self):
+        for model_id, check_info in list(self.rollback_checks.items()):
+            hours_since_deploy = (datetime.utcnow() - check_info['deployed_at']).total_seconds() / 3600
+            if hours_since_deploy >= 1:
+                needs_rollback, reason = self.rollback_manager.check_rollback_needed(
+                    UUID(model_id),
+                    UUID(check_info['previous_model_id'])
+                )
+                if needs_rollback:
+                    logger.warning(f"Rollback needed for model {model_id}: {reason}")
+                    self.rollback_manager.execute_rollback(
+                        UUID(model_id),
+                        UUID(check_info['previous_model_id']),
+                        reason
+                    )
+                del self.rollback_checks[model_id]
     
     def _process_triggers(self):
         """Process pending retraining triggers"""
@@ -320,6 +352,7 @@ class RetrainerOrchestrator:
             while self.running:
                 try:
                     # Process pending triggers
+                    self._check_rollbacks()
                     self._process_triggers()
                     
                     # Sleep before next check

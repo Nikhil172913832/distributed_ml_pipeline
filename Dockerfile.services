@@ -4,7 +4,6 @@ WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
-    g++ \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
@@ -14,9 +13,10 @@ COPY pipeline/ ./pipeline/
 COPY data_generator/ ./data_generator/
 COPY database/ ./database/
 COPY config/ ./config/
+COPY monitoring/ ./monitoring/
 
 RUN mkdir -p logs models
 
 ENV PYTHONUNBUFFERED=1
 
-CMD ["python", "pipeline/model_trainer.py", "--auto-deploy"]
+CMD ["python", "pipeline/producer.py"]

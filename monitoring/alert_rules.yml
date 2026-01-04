@@ -1,0 +1,90 @@
+groups:
+  - name: ml_pipeline_alerts
+    interval: 30s
+    rules:
+      - alert: ModelAccuracyDegraded
+        expr: secom_model_accuracy < 0.85
+        for: 1h
+        labels:
+          severity: warning
+          component: inference
+        annotations:
+          summary: "Model accuracy below threshold"
+          description: "Model accuracy {{ $value }} is below 85% for over 1 hour"
+      
+      - alert: ModelAccuracyCritical
+        expr: secom_model_accuracy < 0.75
+        for: 15m
+        labels:
+          severity: critical
+          component: inference
+        annotations:
+          summary: "Model accuracy critically low"
+          description: "Model accuracy {{ $value }} is below 75%"
+      
+      - alert: DataDriftDetected
+        expr: increase(secom_drift_detected_total[1h]) > 0
+        labels:
+          severity: warning
+          component: inference
+        annotations:
+          summary: "Data drift detected"
+          description: "Drift detected in {{ $value }} features in the last hour"
+      
+      - alert: HighInferenceLatency
+        expr: histogram_quantile(0.95, secom_inference_duration_seconds_bucket) > 0.1
+        for: 10m
+        labels:
+          severity: warning
+          component: inference
+        annotations:
+          summary: "High inference latency"
+          description: "P95 inference latency is {{ $value }}s (threshold: 0.1s)"
+      
+      - alert: ServiceDown
+        expr: up{job=~"secom-.*"} == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "Service has been down for more than 5 minutes"
+      
+      - alert: HighKafkaLag
+        expr: kafka_consumer_lag > 1000
+        for: 10m
+        labels:
+          severity: warning
+          component: consumer
+        annotations:
+          summary: "High Kafka consumer lag"
+          description: "Consumer lag is {{ $value }} messages"
+      
+      - alert: DatabaseConnectionFailures
+        expr: rate(secom_database_connection_errors_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Database connection failures"
+          description: "Database connection error rate: {{ $value }}/s"
+      
+      - alert: ModelRetrainingFailed
+        expr: increase(secom_retraining_failed_total[1h]) > 0
+        labels:
+          severity: warning
+          component: retrainer
+        annotations:
+          summary: "Model retraining failed"
+          description: "Retraining has failed {{ $value }} times in the last hour"
+      
+      - alert: LowConfidencePredictions
+        expr: (sum(rate(secom_low_confidence_predictions_total[5m])) / sum(rate(secom_predictions_made_total[5m]))) > 0.2
+        for: 15m
+        labels:
+          severity: warning
+          component: inference
+        annotations:
+          summary: "High rate of low confidence predictions"
+          description: "{{ $value | humanizePercentage }} of predictions have low confidence"
