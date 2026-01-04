@@ -272,6 +272,35 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  # API service for predictions
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: secom-api
+    ports:
+      - "8004:8004"
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-secom_pipeline}
+      POSTGRES_USER: ${POSTGRES_USER:-ml_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ml_password}
+      MODELS_DIR: /app/models
+      MODEL_CACHE_ENABLED: "true"
+      API_HOST: 0.0.0.0
+      API_PORT: 8004
+      LOG_LEVEL: INFO
+    volumes:
+      - ./models:/app/models
+      - ./logs:/app/logs
+    networks:
+      - ml_pipeline
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
 networks:
   ml_pipeline:
     driver: bridge
