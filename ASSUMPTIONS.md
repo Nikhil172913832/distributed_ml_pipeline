@@ -1,243 +1,109 @@
-# Assumptions and Limitations
+# Design Decisions and Constraints
 
-This document outlines the key assumptions, constraints, and limitations of the distributed ML pipeline for the SECOM manufacturing dataset.
+## What This Project Is
 
-## Table of Contents
-- [Data Assumptions](#data-assumptions)
-- [Model Assumptions](#model-assumptions)
-- [System Assumptions](#system-assumptions)
-- [Limitations](#limitations)
-- [Production Considerations](#production-considerations)
+A demonstration MLOps pipeline using synthetic SECOM manufacturing data. Built to learn and show understanding of:
+- Event streaming with Kafka
+- ML model lifecycle management
+- Automated retraining workflows
+- Basic drift detection
 
----
+## Key Design Choices
 
-## Data Assumptions
+### Why Synthetic Data?
 
-### Data Distribution
+The original SECOM dataset is public but small. I trained an SDV TVAE model to generate realistic samples for continuous pipeline operation. This means:
+- Data distribution matches the original
+- Can generate unlimited samples for testing
+- No real manufacturing insights (it's fake data)
 
-**Expected Input Format:**
-- **Features:** 590 numeric features representing semiconductor manufacturing sensor readings
-- **Target:** Binary classification (pass/fail, encoded as 0/1)
-- **Data Type:** All features are continuous numerical values (floats)
-- **Class Imbalance:** Highly imbalanced dataset (~93% negative class, ~7% positive class)
+### Why Kafka?
 
-**Statistical Properties:**
-- Features are assumed to be independently measured sensor readings
-- Values may contain missing data (NaN) which is common in manufacturing sensor logs
-- No strict value ranges enforced (sensors may have different scales)
-- Temporal dependencies are not explicitly modeled (each sample treated independently)
+Honestly, for this scale, Kafka is overkill. Direct database writes would work fine. But:
+- Kafka is common in real MLOps systems
+- Good learning experience
+- Shows I can work with message queues
 
-**Missing Data:**
-- Missing values can occur due to sensor failures or data collection issues
-- Assumed to be Missing At Random (MAR) or Missing Completely At Random (MCAR)
-- Imputation strategy: Median imputation for numerical features by default
-- Columns with >80% missing values may indicate faulty sensors
+### Why Polling Instead of Events?
 
-**Outliers:**
-- Sensor readings may contain outliers due to:
-  - Equipment malfunction
-  - Calibration errors
-  - Physical anomalies in manufacturing process
-- Outlier handling: IQR-based clipping by default (configurable)
-
----
-
-## Model Assumptions
-
-### Feature Assumptions
-
-**Feature Engineering:**
-- No domain-specific feature engineering is applied by default
-- Raw sensor readings are assumed to contain sufficient signal
-- Feature scaling (StandardScaler) is applied to all features
-- No feature selection by default (all 590 features used)
-
-**Feature Importance:**
-- Not all 590 features are expected to be equally informative
-- Some features may be redundant or correlated
-- Model selection (Random Forest, Logistic Regression) handles feature importance internally
-
-**Temporal Aspects:**
-- Samples are assumed to be independent (no time series modeling)
-- No concept of "manufacturing batch" or temporal ordering
-- Retraining occurs periodically but doesn't use temporal patterns
+The inference service polls the database every 5 seconds instead of using Kafka events. This was simpler to implement and debug, though less efficient.
 
 ### Model Selection
 
-**Default Models:**
-- **Logistic Regression:** Baseline linear model
-- **Random Forest:** Primary production model (better handling of non-linear patterns)
-- **XGBoost/LightGBM:** Available but not default (computational cost)
+Using basic sklearn models (LogisticRegression, RandomForest, GradientBoosting) because:
+- Fast to train
+- Easy to interpret
+- Good enough for binary classification
+- No GPU required
 
-**Training Assumptions:**
-- Training data is representative of production data distribution
-- Class imbalance is handled via `class_weight='balanced'` or SMOTE
-- Model performance is evaluated using F1-score (balanced for imbalanced classes)
-- Validation set is 20% of training data (stratified split)
+Deep learning would be overkill for 590 features and wouldn't add much value.
 
-**Performance Expectations:**
-- **Minimum acceptable F1-score:** 0.75
-- **Target F1-score:** 0.80+
-- **Inference latency:** <100ms per batch (batch size 32)
-- **Model size:** <500MB serialized
+## Known Issues
 
----
+### Performance
 
-## System Assumptions
-
-### Infrastructure
-
-**Compute Resources:**
-- **Training:** 4-8 CPU cores, 16GB RAM minimum
-- **Inference:** 2 CPU cores, 4GB RAM per instance
-- **GPU:** Optional for training (not required for baseline models)
-- **Distributed Training:** Assumes homogeneous compute nodes
-
-**Storage:**
-- **Model Registry:** Local filesystem or S3-compatible storage
-- **Data Lake:** Kafka topics for streaming, PostgreSQL for metadata
-- **Logs:** 90-day retention, compressed after 7 days
-
-**Network:**
-- Kafka brokers accessible at low latency (<10ms)
-- Database connections stable (connection pooling enabled)
-- External API calls (MLflow, Slack webhooks) have timeouts (5-10s)
+- Haven't load tested beyond a few hundred samples/sec
+- Database will bottleneck before Kafka does
+- Model loading from disk is slow (should use shared storage)
 
 ### Scalability
 
-**Throughput Assumptions:**
-- **Inference:** 1000-10000 requests/second (horizontally scaled)
-- **Training:** Full retraining every 7 days or on drift detection
-- **Data Ingestion:** 100-1000 samples/second via Kafka
+- Everything assumes single-instance deployment
+- No session affinity or sticky routing
+- Model files stored locally (breaks with multiple inference instances)
 
-**Horizontal Scaling:**
-- Inference service: Stateless, scales with Kubernetes HPA
-- Consumer service: Multiple consumers per Kafka partition (consumer group)
-- Kafka: Minimum 3 brokers for production (replication factor 3)
+### Monitoring
 
-**Resource Limits:**
-- Kubernetes pods limited to 2GB RAM, 1 CPU per instance (configurable)
-- Auto-scaling triggers at 70% CPU utilization
-- Maximum 10 inference replicas (configurable)
+- Metrics exist but no alerting configured
+- Grafana dashboards are basic
+- No distributed tracing
 
----
+### Security
 
-## Limitations
+- No authentication
+- No encryption
+- No rate limiting
+- Secrets in environment variables
 
-### Data Quality
+This is fine for a demo but would need serious work for production.
 
-**Known Issues:**
-1. **High Missing Data Rate:** Some features have >50% missing values
-   - *Impact:* Reduces effective feature set
-   - *Mitigation:* Imputation or feature removal
+## What I'd Do Differently
 
-2. **Feature Redundancy:** Many features likely correlated
-   - *Impact:* Model complexity, potential overfitting
-   - *Mitigation:* Feature selection, regularization
+If rebuilding from scratch:
+1. Skip Kafka, use database triggers or Redis pub/sub
+2. Add proper API from the start (not as an afterthought)
+3. Use MinIO or S3 for model storage
+4. Implement proper feature store
+5. Add A/B testing framework
+6. Use managed services where possible
 
-3. **Class Imbalance:** 93:7 class ratio
-   - *Impact:* Model bias toward majority class
-   - *Mitigation:* Class weighting, SMOTE, F1-score optimization
+## Assumptions About Data
 
-### Model Limitations
+- 590 features, all numeric
+- Binary classification (pass/fail)
+- Highly imbalanced (93% pass, 7% fail)
+- Missing values handled with median imputation
+- No temporal dependencies between samples
 
-**Interpretability:**
-- Random Forest provides feature importance but not direct causality
-- Deep learning models (if used) lack interpretability
-- No SHAP/LIME explanations implemented by default
+## Assumptions About Deployment
 
-**Drift Detection:**
-- Statistical drift detection (KS test, PSI) may have false positives
-- Concept drift (changed relationship X→y) harder to detect than covariate drift
-- No continuous drift monitoring (batch-based checks only)
-
-**Retraining:**
-- Full retraining required (no incremental learning)
-- Retraining latency: 30-60 minutes for full dataset
-- Manual approval required before deploying new models (SafeRetrainer)
-
-### Operational Limitations
-
-**Monitoring:**
-- Alerting requires external services (Slack, email)
-- No built-in anomaly detection for system metrics
-- Prometheus metrics require Grafana for visualization
-
-**Disaster Recovery:**
-- Model registry backups not automated
-- Kafka topic replication assumes 3+ brokers
-- No multi-region failover
-
-**Security:**
-- Authentication not implemented (assumes internal network)
-- No encryption at rest for models or data
-- Secrets managed via environment variables (not Vault)
-
----
-
-## Production Considerations
-
-### Performance Tuning
-
-**Inference Optimization:**
-- Batch predictions recommended (batch size 16-64)
-- Model quantization not implemented (ONNX/TensorRT potential improvement)
-- Caching predictions not implemented (stateless by default)
-
-**Training Optimization:**
-- Distributed training requires careful data partitioning
-- Hyperparameter tuning not automated (manual grid search)
-- GPU training supported but not required
-
-### Data Versioning
-
-**Assumptions:**
-- Data hash (SHA256) uniquely identifies dataset versions
-- Config hash tracks preprocessing/training configuration
-- Git commit SHA tracks code version
-- No Delta Lake or data catalog integration
-
-### Monitoring Requirements
-
-**Required Metrics:**
-- **Model Performance:** F1, precision, recall, AUC-ROC
-- **System Health:** Inference latency, throughput, error rate
-- **Data Quality:** Missing value rate, drift scores, schema violations
-
-**Alerting Thresholds:**
-- F1-score drop >5%: Warning
-- F1-score drop >10%: Critical
-- Inference latency >500ms (P95): Warning
-- Error rate >1%: Critical
-- Data drift PSI >0.25: Warning
-
----
+- Running on single machine with Docker Compose
+- 8GB RAM available
+- Local development only
+- No high availability requirements
 
 ## Future Improvements
 
-### Short-Term (3-6 months)
-1. Implement SHAP/LIME for model explanations
-2. Add incremental learning for faster retraining
-3. Automate hyperparameter tuning (Optuna/Ray Tune)
-4. Implement model A/B testing framework
-
-### Long-Term (6-12 months)
-1. Deep learning models (Transformers for tabular data)
-2. Multi-model ensemble
-3. Real-time drift detection (online algorithms)
-4. Federated learning for multi-site manufacturing
-
----
+Things I'd add if this were a real project:
+- Proper authentication and authorization
+- Model performance attribution (which features cause drift)
+- Automated rollback on model degradation
+- Shadow mode for testing new models
+- Cost tracking and optimization
+- Better error handling and retry logic
 
 ## References
 
-- **Dataset:** [SECOM Dataset](https://archive.ics.uci.edu/ml/datasets/SECOM)
-- **Drift Detection:** Kolmogorov-Smirnov test, Population Stability Index (PSI)
-- **Class Imbalance:** SMOTE (Synthetic Minority Over-sampling Technique)
-- **Model Registry:** MLflow integration (optional)
-
----
-
-**Last Updated:** 2025-05-28
-
-**Maintained By:** ML Platform Team
+- SECOM Dataset: https://archive.ics.uci.edu/ml/datasets/SECOM
+- SDV for synthetic data: https://sdv.dev
+- Drift detection: Kolmogorov-Smirnov test

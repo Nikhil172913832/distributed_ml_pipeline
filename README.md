@@ -1,177 +1,139 @@
-# Distributed ML Pipeline with Continuous Learning
+# Distributed ML Pipeline
 
-MLOps system for semiconductor manufacturing quality control with real-time inference, automated retraining, and drift detection.
+End-to-end MLOps pipeline demonstrating continuous learning patterns for binary classification on the SECOM manufacturing dataset.
 
-## Features
+## What This Is
 
-- Real-time inference with confidence scoring
-- Automated retraining when accuracy < 85% or drift detected
-- Statistical drift monitoring (KS-test) every 6 hours
-- Model version control with metadata
-- Prometheus and Grafana monitoring
-- Docker orchestration
+A learning project showing how to build an ML pipeline with:
+- Kafka streaming for data ingestion
+- PostgreSQL for data storage and model registry
+- Automated retraining based on performance degradation
+- Basic drift detection using statistical tests
+- REST API for predictions
 
-## Architecture
+This uses synthetic data generated from the original SECOM dataset. It's designed to demonstrate MLOps concepts, not for production manufacturing use.
 
-```
-Data → Kafka → Preprocessing → PostgreSQL → Inference → Continuous Learning
-         ↓                         ↓            ↓              ↓
-    Monitoring ←──────────────────────────────────────────────┘
-```
+## Stack
 
-Services: Producer | Consumer | Inference | Retrainer | Kafka | PostgreSQL | Redis | Prometheus | Grafana
-
-See [ARCHITECTURE.md](ARCHITECTURE.md) for details.
-
-## Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| ML Framework | Scikit-learn (LogisticRegression, RandomForest, GradientBoosting) |
-| Streaming | Apache Kafka 7.5 (KRaft) |
-| Database | PostgreSQL 16 (13 tables) |
-| Monitoring | Prometheus + Grafana |
-| Orchestration | Docker Compose |
+- **ML**: scikit-learn (LogisticRegression, RandomForest, GradientBoosting)
+- **Data**: Kafka, PostgreSQL, Redis
+- **Monitoring**: Prometheus, Grafana
+- **Deployment**: Docker Compose
 
 ## Quick Start
 
 ```bash
-# 1. Setup environment
 ./setup.sh
-
-# 2. Start all services
 make start
-
-# 3. Monitor
-open http://localhost:3000  # Grafana (admin/admin)
 ```
 
-Verify deployment:
+Access Grafana at http://localhost:3000 (admin/admin)
+
+Check status:
 ```bash
-make status      # Service health
-make metrics     # Prometheus metrics
-make performance # Model accuracy/F1
+make status
+make performance
 ```
 
+## API Usage
 
-## ML Operations
+The prediction API runs on port 8004:
 
-### Training
 ```bash
+# Single prediction
+curl -X POST http://localhost:8004/predict \
+  -H "Content-Type: application/json" \
+  -d '{"features": {"feature_0": 1.2, "feature_1": -0.5, ...}}'
+
+# Health check
+curl http://localhost:8004/health
+
+# Model info
+curl http://localhost:8004/model/info
+```
+
+## How It Works
+
+1. Producer generates synthetic SECOM data every 5 seconds
+2. Consumer preprocesses and stores in PostgreSQL
+3. Inference service makes predictions and tracks performance
+4. Retrainer automatically triggers when accuracy drops below 85%
+5. Drift detector runs KS-test every 6 hours
+
+## Training
+
+```bash
+# Train new model
 python pipeline/model_trainer.py --data-days 7 --auto-deploy
-```
 
-### Monitoring
-```bash
-make model-info      # Current model details
-make performance     # Accuracy & F1 scores
-make drift-status    # Drift detection status
-make logs-inference  # Inference logs
-```
-
-### Manual Retraining
-```bash
+# Trigger retraining
 make trigger-retrain
 ```
-
-Automated triggers: Performance < 85% accuracy/80% F1, or drift detected (p-value < 0.05)
-
-## Documentation
-
-- [ARCHITECTURE.md](ARCHITECTURE.md): System architecture
-- [ML_PIPELINE_GUIDE.md](ML_PIPELINE_GUIDE.md): ML operations
-- [DEPLOYMENT.md](DEPLOYMENT.md): Deployment guide
-- [BENCHMARKING.md](BENCHMARKING.md): Performance measurement
-- [benchmarks/](benchmarks/): Benchmark scripts
-
-## Performance Benchmarking
-
-```bash
-# Run k6 load test
-make bench
-
-# Run Python benchmark
-make bench-python
-
-# Run all benchmarks
-make bench-all
-```
-
-Results saved to `benchmarks/results/`. See [benchmarks/README.md](benchmarks/README.md) and [BENCHMARKING.md](BENCHMARKING.md) for details.
-
-Note: Performance varies by hardware and configuration.
 
 ## Testing
 
 ```bash
-pytest tests/test_ml_pipeline.py -v  # ML integration tests
-pytest tests/ -v --cov=pipeline      # Full test suite
+pytest tests/ -v
 ```
+
+Note: Some tests require running services (Kafka, PostgreSQL).
+
+## Known Limitations
+
+- Uses synthetic data only
+- Polling-based inference (not event-driven)
+- No authentication or rate limiting
+- Single-instance deployment (no horizontal scaling configured)
+- Model loading from local filesystem (won't work in distributed setup)
+- No automated rollback if new model performs worse
+
+## Project Structure
+
+```
+pipeline/          # Core services (producer, consumer, inference, retrainer)
+database/          # Schema and database utilities
+tests/             # Integration and unit tests
+models/            # Trained model artifacts
+config/            # Configuration management
+```
+
+## Monitoring
+
+- Prometheus: http://localhost:9090
+- Grafana: http://localhost:3000
+
+Key metrics tracked:
+- Prediction throughput
+- Model accuracy and F1 score
+- Inference latency
+- Drift detection events
 
 ## Troubleshooting
 
 ```bash
-make status          # Check all services
-make logs            # View all logs
-docker logs <service> # Specific service logs
-make clean           # Reset everything
+make logs              # View all logs
+make clean             # Reset everything
+docker-compose restart # Restart services
 ```
 
-Common issues: See [DEPLOYMENT.md](DEPLOYMENT.md#troubleshooting)
+Common issues:
+- Services not starting: Check Docker has enough memory (8GB recommended)
+- No predictions: Train a model first with `make train`
+- Database errors: Run `./setup.sh` to reinitialize
 
-## Monitoring
+## Documentation
 
-### Prometheus Metrics
+- [ARCHITECTURE.md](ARCHITECTURE.md) - System design and data flow
+- [ASSUMPTIONS.md](ASSUMPTIONS.md) - Design decisions and constraints
 
-Access Prometheus: `http://localhost:9090`
+## What I Learned Building This
 
-Key metrics:
-```promql
-# Prediction throughput
-rate(secom_predictions_made_total[5m])
+- Setting up Kafka with Docker can be tricky (KRaft mode helps)
+- Database schema design for ML metadata is non-trivial
+- Drift detection needs careful threshold tuning
+- Synthetic data is useful for demos but has limitations
+- Monitoring is essential but easy to over-engineer
 
-# Model accuracy
-secom_model_accuracy
+## License
 
-# Inference latency (p95)
-histogram_quantile(0.95, secom_inference_duration_seconds_bucket)
-
-# Drift events
-secom_drift_detected_total
-
-# Retraining jobs
-secom_retraining_triggered_total
-```
-
-### Grafana Dashboards
-
-Access: `http://localhost:3000` (admin/admin)
-
-- ML Performance dashboard
-- Pipeline Health dashboard
-
-### Logs
-
-```bash
-# All services
-make logs
-
-# Specific service
-make logs-inference
-make logs-retrainer
-
-# Producer/Consumer
-tail -f logs/producer_*.log
-tail -f logs/consumer_*.log
-
-# Docker logs
-docker-compose logs -f [service_name]
-```
-
-## Reset
-
-```bash
-make clean  # Stop and remove all data
-./setup.sh  # Restart fresh
-make up
-```
+MIT
