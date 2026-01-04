@@ -1,0 +1,22 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY pipeline/ ./pipeline/
+COPY config/ ./config/
+COPY database/ ./database/
+COPY models/ ./models/
+
+ENV PYTHONPATH=/app
+ENV API_PORT=8004
+
+EXPOSE 8004
+
+CMD ["python", "pipeline/api_service.py"]
