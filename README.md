@@ -10,12 +10,14 @@ A learning project showing how to build an ML pipeline with:
 - Automated retraining based on performance degradation
 - Basic drift detection using statistical tests
 - REST API for predictions
+- Advanced ML models (TabNet, deep learning, ensembles)
 
 This uses synthetic data generated from the original SECOM dataset. It's designed to demonstrate MLOps concepts, not for production manufacturing use.
 
 ## Stack
 
-- **ML**: scikit-learn (LogisticRegression, RandomForest, GradientBoosting)
+- **ML**: scikit-learn, PyTorch, TabNet
+- **Advanced**: Attention mechanisms, autoencoders, focal loss, SMOTE
 - **Data**: Kafka, PostgreSQL, Redis
 - **Monitoring**: Prometheus, Grafana
 - **Deployment**: Docker Compose
@@ -63,12 +65,23 @@ curl http://localhost:8004/model/info
 ## Training
 
 ```bash
-# Train new model
+# Train traditional models
 python pipeline/model_trainer.py --data-days 7 --auto-deploy
+
+# Train advanced models (TabNet, deep learning)
+python train_advanced_models.py --data-days 7 --models tabnet,deep,ensemble
 
 # Trigger retraining
 make trigger-retrain
 ```
+
+Advanced models include:
+- TabNet with attention-based feature selection
+- Deep neural networks with self-attention
+- Autoencoders for anomaly detection
+- Deep ensembles for uncertainty estimation
+- Focal loss for handling class imbalance
+- SMOTE for synthetic minority oversampling
 
 ## Testing
 
