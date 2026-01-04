@@ -24,10 +24,10 @@ def check_kafka():
         )
         topics = admin_client.list_topics()
         admin_client.close()
-        logger.info(f"✓ Kafka is healthy. Topics: {len(topics)}")
+        logger.info(f"Kafka is healthy. Topics: {len(topics)}")
         return True
     except KafkaError as e:
-        logger.error(f"✗ Kafka health check failed: {e}")
+        logger.error(f"x Kafka health check failed: {e}")
         return False
 
 
@@ -46,10 +46,10 @@ def check_postgres():
         cur.execute('SELECT 1')
         cur.close()
         conn.close()
-        logger.info("✓ PostgreSQL is healthy")
+        logger.info("PostgreSQL is healthy")
         return True
     except Exception as e:
-        logger.error(f"✗ PostgreSQL health check failed: {e}")
+        logger.error(f"x PostgreSQL health check failed: {e}")
         return False
 
 
@@ -59,7 +59,7 @@ def check_prometheus():
         # Check producer metrics
         response = requests.get('http://localhost:8000/metrics', timeout=5)
         if response.status_code == 200:
-            logger.info("✓ Producer metrics endpoint is healthy")
+            logger.info("Producer metrics endpoint is healthy")
             producer_healthy = True
         else:
             logger.warning("⚠ Producer metrics endpoint returned non-200 status")
@@ -72,7 +72,7 @@ def check_prometheus():
         # Check consumer metrics
         response = requests.get('http://localhost:8001/metrics', timeout=5)
         if response.status_code == 200:
-            logger.info("✓ Consumer metrics endpoint is healthy")
+            logger.info("Consumer metrics endpoint is healthy")
             consumer_healthy = True
         else:
             logger.warning("⚠ Consumer metrics endpoint returned non-200 status")
@@ -99,7 +99,7 @@ def main():
     logger.info("=" * 60)
     logger.info("Health Check Summary:")
     for service, status in checks.items():
-        status_symbol = "✓" if status else "✗"
+        status_symbol = "✓" if status else "x"
         logger.info(f"  {status_symbol} {service}: {'Healthy' if status else 'Unhealthy'}")
     logger.info("=" * 60)
     

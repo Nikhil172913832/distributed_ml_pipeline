@@ -123,7 +123,7 @@ class PreprocessingPipeline:
             
             # Placeholder - simple preprocessing logic
             self.pipeline = None
-            logger.info("✓ Preprocessing pipeline loaded (using simple imputation)")
+            logger.info("Preprocessing pipeline loaded (using simple imputation)")
             
         except FileNotFoundError:
             logger.warning(f"Pipeline file not found at {self.pipeline_path}")
@@ -260,7 +260,7 @@ class ConsumerOrchestrator:
                 key_deserializer=lambda k: k.decode('utf-8') if k else None
             )
             
-            logger.info("✓ Kafka consumer created successfully")
+            logger.info("Kafka consumer created successfully")
             return consumer
             
         except Exception as e:
@@ -336,7 +336,7 @@ class ConsumerOrchestrator:
             
             metrics['batches_processed'].inc()
             logger.info(
-                f"✓ Batch {batch_id} completed in {processing_duration_ms:.2f}ms "
+                f"Batch {batch_id} completed in {processing_duration_ms:.2f}ms "
                 f"(Pass: {pass_count}, Fail: {fail_count})"
             )
             

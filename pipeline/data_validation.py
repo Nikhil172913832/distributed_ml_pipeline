@@ -254,12 +254,12 @@ class DataValidator:
     def get_validation_summary(self, results: Dict[str, Any]) -> str:
         """Generate human-readable validation summary."""
         if results["valid"]:
-            return "✓ Data validation passed"
+            return "Data validation passed"
         else:
             errors = "\n".join(f"  - {e}" for e in results["errors"])
             warnings = "\n".join(f"  - {w}" for w in results["warnings"]) if results["warnings"] else ""
             
-            summary = f"✗ Data validation failed:\n{errors}"
+            summary = f"x Data validation failed:\n{errors}"
             if warnings:
                 summary += f"\n\nWarnings:\n{warnings}"
             return summary

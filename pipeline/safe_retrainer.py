@@ -364,7 +364,7 @@ class SafeRetrainer:
             # Remove from pending
             del self.pending_approvals[model_id]
             
-            logger.info(f"✓ Model {model_id} deployed successfully")
+            logger.info(f"Model {model_id} deployed successfully")
             return True
             
         except Exception as e:
@@ -518,7 +518,7 @@ if __name__ == "__main__":
             approved_by=args.approved_by,
             notes=args.notes
         )
-        print(f"✓ Model {model_id} approved and deployed")
+        print(f"Model {model_id} approved and deployed")
     
     elif args.command == 'reject':
         model_id = UUID(args.model_id)
@@ -528,7 +528,7 @@ if __name__ == "__main__":
             reason=args.reason,
             notes=args.notes
         )
-        print(f"✓ Model {model_id} rejected")
+        print(f"Model {model_id} rejected")
     
     else:
         parser.print_help()

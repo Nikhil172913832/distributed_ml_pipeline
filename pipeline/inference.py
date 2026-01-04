@@ -126,12 +126,12 @@ class ModelInferenceEngine:
         try:
             logger.info(f"Loading model from {self.model_path}")
             self.model = joblib.load(self.model_path)
-            logger.info("✓ Model loaded successfully")
+            logger.info("Model loaded successfully")
             
             if self.preprocessing_path:
                 logger.info(f"Loading preprocessing pipeline from {self.preprocessing_path}")
                 self.preprocessing_pipeline = joblib.load(self.preprocessing_path)
-                logger.info("✓ Preprocessing pipeline loaded")
+                logger.info("Preprocessing pipeline loaded")
                 
         except FileNotFoundError:
             logger.error(f"Model file not found at {self.model_path}")
@@ -470,7 +470,7 @@ class InferenceOrchestrator:
             metrics['predictions_made'].inc(len(prediction_records))
             
             logger.info(
-                f"✓ Made {len(prediction_records)} predictions "
+                f"Made {len(prediction_records)} predictions "
                 f"(avg confidence: {np.mean([p['confidence_score'] for p in prediction_records]):.3f})"
             )
             

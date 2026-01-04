@@ -119,7 +119,7 @@ class SDVDataGenerator:
             self.model = artifacts['model']
             self.metadata = artifacts.get('metadata')
             
-            logger.info("✓ SDV model loaded successfully")
+            logger.info("SDV model loaded successfully")
             logger.info(f"  Model type: {artifacts.get('model_type', 'Unknown')}")
             logger.info(f"  Training date: {artifacts.get('training_date', 'Unknown')}")
             
@@ -162,7 +162,7 @@ class SDVDataGenerator:
                     samples.append(sample)
                 
                 metrics['samples_generated'].inc(len(samples))
-                logger.debug(f"✓ Generated {len(samples)} samples for batch {batch_id}")
+                logger.debug(f"Generated {len(samples)} samples for batch {batch_id}")
                 
                 return samples
                 
@@ -196,7 +196,7 @@ class KafkaDataProducer:
                 max_in_flight_requests_per_connection=self.config['kafka']['max_in_flight_requests_per_connection'],
             )
             
-            logger.info("✓ Connected to Kafka successfully")
+            logger.info("Connected to Kafka successfully")
             
         except Exception as e:
             logger.error(f"Failed to connect to Kafka: {e}")
@@ -235,7 +235,7 @@ class KafkaDataProducer:
                     logger.error(f"Kafka send error: {e}")
                     raise
             
-            logger.info(f"✓ Batch {batch_id} sent successfully to topic '{self.config['kafka']['topic']}'")
+            logger.info(f"Batch {batch_id} sent successfully to topic '{self.config['kafka']['topic']}'")
             
         except Exception as e:
             logger.error(f"Error sending batch {batch_id}: {e}")
@@ -247,7 +247,7 @@ class KafkaDataProducer:
             logger.info("Closing Kafka producer...")
             self.producer.flush()
             self.producer.close()
-            logger.info("✓ Kafka producer closed")
+            logger.info("Kafka producer closed")
 
 
 class ProducerOrchestrator:

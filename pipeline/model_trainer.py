@@ -159,7 +159,7 @@ class ModelTrainer:
         grid_search.fit(X_train, y_train)
         training_duration = time.time() - start_time
         
-        logger.info(f"✓ GridSearchCV completed in {training_duration:.2f}s")
+        logger.info(f"GridSearchCV completed in {training_duration:.2f}s")
         logger.info(f"  Best score: {grid_search.best_score_:.4f}")
         logger.info(f"  Best params: {grid_search.best_params_}")
         
@@ -245,7 +245,7 @@ class ModelTrainer:
         model_path = self.models_dir / filename
         
         joblib.dump(model, model_path)
-        logger.info(f"✓ Model saved to {model_path}")
+        logger.info(f"Model saved to {model_path}")
         
         return str(model_path)
 
@@ -298,7 +298,7 @@ class TrainingOrchestrator:
                 features_df = pd.DataFrame(df['features'].tolist())
                 target_series = df['target']
                 
-                logger.info(f"✓ Loaded {len(df)} samples with {len(features_df.columns)} features")
+                logger.info(f"Loaded {len(df)} samples with {len(features_df.columns)} features")
                 logger.info(f"  Target distribution: {target_series.value_counts().to_dict()}")
                 
                 return features_df, target_series
@@ -387,7 +387,7 @@ class TrainingOrchestrator:
                 
                 results.append(result)
                 
-                logger.info(f"✓ {model_type} training completed")
+                logger.info(f"{model_type} training completed")
                 logger.info(f"  Model ID: {model_id}")
                 logger.info(f"  Version: {version}")
                 
@@ -452,7 +452,7 @@ class TrainingOrchestrator:
             )
         
         logger.info("=" * 80)
-        logger.info(f"✓ Best model: {best_model['model_type']} (F1: {best_model['test_metrics']['f1_score']:.4f})")
+        logger.info(f"Best model: {best_model['model_type']} (F1: {best_model['test_metrics']['f1_score']:.4f})")
         
         return best_model
     
@@ -460,7 +460,7 @@ class TrainingOrchestrator:
         """Deploy a model by activating it"""
         try:
             self.model_registry_repo.activate_model(model_id)
-            logger.info(f"✓ Model {model_id} deployed and activated")
+            logger.info(f"Model {model_id} deployed and activated")
             
             # Log audit event
             self.audit_repo.log_event(

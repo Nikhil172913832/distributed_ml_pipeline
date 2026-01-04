@@ -44,7 +44,7 @@ class DatabaseManager:
                 maxconn=20,
                 **self.config
             )
-            logger.info("✓ Database connection pool created successfully")
+            logger.info("Database connection pool created successfully")
         except Exception as e:
             logger.error(f"Failed to create connection pool: {e}")
             raise

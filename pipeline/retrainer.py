@@ -296,9 +296,9 @@ class RetrainerOrchestrator:
             )
             
             if success:
-                logger.info(f"✓ Trigger {trigger_id} processed successfully")
+                logger.info(f"Trigger {trigger_id} processed successfully")
             else:
-                logger.error(f"✗ Trigger {trigger_id} processing failed")
+                logger.error(f"x Trigger {trigger_id} processing failed")
             
             # If configured for single training at a time, break after first
             if self.config['retrainer']['max_concurrent_training'] == 1:
